@@ -1,0 +1,53 @@
+# =========================
+# UNITY GENERATED
+# =========================
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+MemoryCaptures/
+Recordings/
+
+# =========================
+# USER / LOCAL SETTINGS
+# =========================
+UserSettings/
+
+# =========================
+# IDE (Visual Studio, VSCode, Rider...)
+# =========================
+.vs/
+.vscode/
+.idea/
+
+*.csproj
+*.sln
+*.user
+*.userprefs
+*.pidb
+*.booproj
+.vsconfig
+
+# =========================
+# OS FILES
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# UNITY BUILD FILES
+# =========================
+*.apk
+*.aab
+*.exe
+*.unitypackage
+
+# =========================
+# DEBUG / TEMP
+# =========================
+sysinfo.txt
+*.log
+*.tmp
+*.cache

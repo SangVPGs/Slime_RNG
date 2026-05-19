@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4ef7d40dd599754d83ca1d3b6e34eda, type: 3}
+  m_Name: Crocodile
+  m_EditorClassIdentifier: 
+  id: P006
+  unitName: Crocodile
+  prefab: {fileID: 3832442962883511732, guid: a16e82c141540314ca4c8784781dfb53, type: 3}
+  hp: 100
+  atk: 10
+  atkRange: 1.5
+  atkSpeed: 1
+  speed: 6
+  rarity: 2
+  icon: {fileID: 21300000, guid: 81ba28ad7d8c54c43b604f9c52a762a7, type: 3}
