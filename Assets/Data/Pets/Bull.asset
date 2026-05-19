@@ -20,5 +20,6 @@ MonoBehaviour:
   atkRange: 1.5
   atkSpeed: 1
   speed: 12
+  heal: 5
   rarity: 2
   icon: {fileID: 21300000, guid: 81ba28ad7d8c54c43b604f9c52a762a7, type: 3}

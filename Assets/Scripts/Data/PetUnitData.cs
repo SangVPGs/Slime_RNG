@@ -14,6 +14,7 @@ public enum PetRarity
 public class PetUnitData : UnitData
 {
     [Header("Pet Info")]
+    public int heal;
     public PetRarity rarity;
     public Sprite icon;
 

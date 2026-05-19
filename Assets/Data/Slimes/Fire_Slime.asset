@@ -17,7 +17,6 @@ MonoBehaviour:
   prefab: {fileID: 3832442962883511732, guid: d4eab71987bcdfb44aa6fc55e358e154, type: 3}
   hp: 100
   atk: 10
-  atkRange: 1.5
-  atkSpeed: 1
-  speed: 3.5
-  canSpawn: 1
+  atkRange: 3
+  atkSpeed: 2
+  speed: 3

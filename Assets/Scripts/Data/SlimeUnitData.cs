@@ -4,9 +4,6 @@ using UnityEngine;
 [CreateAssetMenu(menuName = "Game/Unit/Slime")]
 public class SlimeUnitData : UnitData
 {
-    [Header("Slime Info")]
-    public bool canSpawn = true;
-
 #if UNITY_EDITOR
     private void OnValidate()
     {
