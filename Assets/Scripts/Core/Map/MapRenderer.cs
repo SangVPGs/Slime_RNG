@@ -42,7 +42,7 @@ public class MapRenderer : MonoBehaviour
 
         chunk.Initialize(data);
 
-        if (spawnedMaps.Count > 0)
+        if (spawnedMaps.Count >= 1)
             AlignToPrevious(chunk, spawnedMaps[^1]);
 
         spawnedMaps.Add(chunk);
@@ -93,7 +93,7 @@ public class MapRenderer : MonoBehaviour
     {
         foreach (MapChunk chunk in spawnedMaps)
         {
-            if (chunk.Level == level)
+            if (chunk.Level == level - 1)
                 return chunk;
         }
 
