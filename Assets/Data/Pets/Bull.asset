@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   id: P003
   unitName: Bull
-  prefab: {fileID: 3832442962883511732, guid: 1c1f11848e95d494c894725479307279, type: 3}
+  model: {fileID: 919132149155446097, guid: a75b2795e6daa9e4395b5db5c28c5037, type: 3}
   hp: 100
   atk: 10
   atkRange: 1.5

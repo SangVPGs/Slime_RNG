@@ -14,12 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   id: P002
   unitName: Bear
-  prefab: {fileID: 3832442962883511732, guid: 14863b17ca960de4c94d0d9c5f6053ba, type: 3}
+  model: {fileID: 919132149155446097, guid: 8b75c828bddb0294489e7cae674e3842, type: 3}
   hp: 100
   atk: 10
   atkRange: 5
   atkSpeed: 1
   speed: 8
   heal: 5
-  rarity: 2
+  rarity: 3
   icon: {fileID: 21300000, guid: 81ba28ad7d8c54c43b604f9c52a762a7, type: 3}

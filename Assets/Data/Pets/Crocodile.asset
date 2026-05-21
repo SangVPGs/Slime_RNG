@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   id: P006
   unitName: Crocodile
-  prefab: {fileID: 3832442962883511732, guid: a16e82c141540314ca4c8784781dfb53, type: 3}
+  model: {fileID: 919132149155446097, guid: be92a3362f2847a4d8c7c363c20c5698, type: 3}
   hp: 100
   atk: 10
   atkRange: 1.5

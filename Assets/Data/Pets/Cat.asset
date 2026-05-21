@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   id: P004
   unitName: Cat
-  prefab: {fileID: 3832442962883511732, guid: 90a4568568e2f4448b953544953f0006, type: 3}
+  model: {fileID: 919132149155446097, guid: 33cff3610c75b7947b5e5026a1780a5b, type: 3}
   hp: 100
   atk: 10
   atkRange: 1.5

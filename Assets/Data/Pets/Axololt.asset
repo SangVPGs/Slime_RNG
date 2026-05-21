@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   id: P001
   unitName: Axololt
-  prefab: {fileID: 3832442962883511732, guid: 3b582463f92746b419c10c4a55dcadc4, type: 3}
+  model: {fileID: 919132149155446097, guid: ca6767a819ec64d4fad11e9aa52b5f6d, type: 3}
   hp: 100
   atk: 10
   atkRange: 3

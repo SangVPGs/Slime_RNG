@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 
+// Sai kiến trúc - sửa sau
+
 [CreateAssetMenu(menuName = "Game/Party")]
 public class PartyData : ScriptableObject
 {

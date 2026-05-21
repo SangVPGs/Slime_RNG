@@ -3,7 +3,7 @@
 public class PetListUI : MonoBehaviour
 {
     [Header("Data")]
-    [SerializeField] private Database database;
+    [SerializeField] private PetDatabase database;
 
     [Header("UI")]
     [SerializeField] private Transform contentParent;
@@ -21,7 +21,7 @@ public class PetListUI : MonoBehaviour
         foreach (PetUnitData pet in database.Pets)
         {
             PetUIItem item = Instantiate(petItemPrefab, contentParent);
-            item.Setup(pet, this);
+            item.SetupIndex(pet);
         }
     }
 

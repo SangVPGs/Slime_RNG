@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   id: P005
   unitName: Dog
-  prefab: {fileID: 3832442962883511732, guid: 1c126af4637e36642a75a9cb5799f130, type: 3}
+  model: {fileID: 919132149155446097, guid: 837507e7f8c77ec46b692195ef69b09a, type: 3}
   hp: 100
   atk: 10
   atkRange: 1.5

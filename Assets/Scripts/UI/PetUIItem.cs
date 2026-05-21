@@ -1,6 +1,7 @@
-﻿using UnityEngine;
-using UnityEngine.UI;
+﻿using System;
 using TMPro;
+using UnityEngine;
+using UnityEngine.UI;
 
 public class PetUIItem : MonoBehaviour
 {
@@ -8,34 +9,98 @@ public class PetUIItem : MonoBehaviour
     [SerializeField] private Image iconImage;
     [SerializeField] private TMP_Text nameText;
 
-    private PetUnitData petData;
-    private PetListUI owner;
+    [Header("Button")]
+    [SerializeField] private Button button;
+    [SerializeField] private Image buttonImage;
+    [SerializeField] private TMP_Text buttonText;
 
-    public void Setup(PetUnitData data, PetListUI listUI)
+    private Color addColor = Color.green;
+    private Color removeColor = Color.red;
+
+    private PetUnitData petData;
+    private Action<PetUnitData> onClicked;
+
+    public void SetupInventory(PetUnitData data,Action<PetUnitData> clickCallback)
+    {
+        SetupInfo(data);
+
+        onClicked = clickCallback;
+
+        SetupButton(true,"Add",addColor);
+    }
+
+    public void SetupParty(PetUnitData data,Action<PetUnitData> clickCallback)
+    {
+        SetupInfo(data);
+
+        onClicked = clickCallback;
+
+        SetupButton(true,"Remove",removeColor);
+    }
+
+    public void SetupIndex(PetUnitData data)
+    {
+        SetupInfo(data);
+        button.gameObject.SetActive(false);
+    }
+
+    private void SetupInfo(PetUnitData data)
     {
         petData = data;
-        owner = listUI;
 
-        iconImage.sprite = data.icon;
-        nameText.text = data.unitName;
-        
-        switch(data.rarity)
+        if (petData == null)
+            return;
+
+        if (iconImage != null)
+            iconImage.sprite = petData.icon;
+
+        if (nameText != null)
         {
-            case PetRarity.Common:
-                nameText.color = Color.gray;
-                break;
-            case PetRarity.Uncommon:
-                nameText.color = Color.green;
-                break;
-            case PetRarity.Rare:
-                nameText.color = Color.blue;
-                break;
-            case PetRarity.Epic:
-                nameText.color = Color.magenta;
-                break;
-            case PetRarity.Legendary:
-                nameText.color = Color.yellow;
-                break;
+            nameText.text = petData.unitName;
+
+            nameText.color =
+                GetRarityColor(petData.rarity);
         }
+    }
+
+    private void SetupButton(
+        bool visible,
+        string text,
+        Color color)
+    {
+        if (button == null)
+            return;
+
+        button.gameObject.SetActive(visible);
+
+        if (!visible)
+            return;
+
+        button.onClick.RemoveAllListeners();
+        button.onClick.AddListener(OnButtonClicked);
+
+        if (buttonImage != null)
+            buttonImage.color = color;
+
+        if (buttonText != null)
+            buttonText.text = text;
+    }
+
+    private void OnButtonClicked()
+    {
+        onClicked?.Invoke(petData);
+    }
+
+    private Color GetRarityColor(PetRarity rarity)
+    {
+        return rarity switch
+        {
+            PetRarity.Common => Color.gray,
+            PetRarity.Uncommon => Color.green,
+            PetRarity.Rare => Color.blue,
+            PetRarity.Epic => Color.magenta,
+            PetRarity.Legendary => Color.yellow,
+            _ => Color.white
+        };
     }
 }

@@ -8,7 +8,7 @@ public abstract class UnitData : ScriptableObject
 
     public string unitName;
 
-    public GameObject prefab;
+    public GameObject model;
 
     public int hp = 100;
     public int atk = 10;
