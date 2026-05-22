@@ -6,7 +6,7 @@ public static class MapUnlockSave
 
     public static bool IsUnlocked(int level)
     {
-        if (level <= 1)
+        if (level == 0)
             return true;
 
         return PlayerPrefs.GetInt(GetKey(level), 0) == 1;

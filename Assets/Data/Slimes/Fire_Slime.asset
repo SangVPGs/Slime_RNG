@@ -18,6 +18,6 @@ MonoBehaviour:
   hp: 100
   atk: 10
   atkRange: 3
-  atkSpeed: 2
+  atkSpeed: 1
   speed: 3
   goldDrop: 10

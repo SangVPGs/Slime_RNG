@@ -14,14 +14,17 @@ public class PetInventoryUI : MonoBehaviour
     {
         if (inventorySystem != null)
             inventorySystem.OnInventoryChanged += ShowPets;
-
-        ShowPets();
     }
 
     private void OnDisable()
     {
         if (inventorySystem != null)
             inventorySystem.OnInventoryChanged -= ShowPets;
+    }
+
+    private void Start()
+    {
+        ShowPets();
     }
 
     public void ShowPets()
@@ -46,7 +49,7 @@ public class PetInventoryUI : MonoBehaviour
 
         ClearOldItems();
 
-        foreach (PetInventoryEntry entry in inventorySystem.Data.Pets)
+        foreach (InventorySystem.PetInventoryEntry entry in inventorySystem.Data.Pets)
         {
             if (entry == null || entry.petData == null)
                 continue;
@@ -59,6 +62,9 @@ public class PetInventoryUI : MonoBehaviour
 
     private void OnPetClicked(PetUnitData petData)
     {
+        if (petData == null)
+            return;
+
         Debug.Log($"Inventory clicked pet: {petData.unitName}");
 
         if (partySystem == null)

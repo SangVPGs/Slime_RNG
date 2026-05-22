@@ -15,4 +15,4 @@ MonoBehaviour:
   level: 5
   mapPrefab: {fileID: 6807517083651868280, guid: 124eb4676282aad48ac310a2e5327cd2,
     type: 3}
-  unlockCost: 30000
+  unlockCost: 12000

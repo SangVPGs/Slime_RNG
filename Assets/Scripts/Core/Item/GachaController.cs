@@ -16,14 +16,43 @@ public class GachaController : MonoBehaviour
     [SerializeField] private float resultWaitTime = 1f;
 
     private Coroutine autoRollCoroutine;
-    private bool isAutoRolling;
+    private Coroutine rollCoroutine;
 
-    public void Button_ToggleAutoRoll()
+    private bool isAutoRolling;
+    private bool isRolling;
+    private bool startAutoAfterCurrentRoll;
+
+    public void Roll()
+    {
+        if (isRolling || isAutoRolling)
+            return;
+
+        SetRollingVisual(true);
+
+        rollCoroutine = StartCoroutine(RollRoutine(false));
+    }
+
+    public void AutoRoll()
     {
         if (isAutoRolling)
+        {
             StopAutoRoll();
-        else
-            StartAutoRoll();
+            return;
+        }
+
+        if (isRolling)
+        {
+            startAutoAfterCurrentRoll = true;
+
+            SetRollingVisual(true);
+
+            if (gachaUI != null)
+                gachaUI.SetAutoRollVisual(true);
+
+            return;
+        }
+
+        StartAutoRoll();
     }
 
     public void StartAutoRoll()
@@ -32,42 +61,71 @@ public class GachaController : MonoBehaviour
             return;
 
         isAutoRolling = true;
-        gachaUI.SetAutoRollVisual(true);
+        startAutoAfterCurrentRoll = false;
+
+        SetRollingVisual(true);
+
+        if (gachaUI != null)
+            gachaUI.SetAutoRollVisual(true);
 
         autoRollCoroutine = StartCoroutine(AutoRollRoutine());
     }
 
     public void StopAutoRoll()
     {
-        if (!isAutoRolling)
+        if (!isAutoRolling && !startAutoAfterCurrentRoll)
             return;
 
         isAutoRolling = false;
-        gachaUI.SetAutoRollVisual(false);
+        startAutoAfterCurrentRoll = false;
 
         if (autoRollCoroutine != null)
         {
             StopCoroutine(autoRollCoroutine);
             autoRollCoroutine = null;
         }
+
+        if (!isRolling)
+            SetRollingVisual(false);
+
+        if (gachaUI != null)
+            gachaUI.SetAutoRollVisual(false);
     }
 
     private IEnumerator AutoRollRoutine()
     {
         while (isAutoRolling)
         {
-            yield return StartCoroutine(PlayOneRoll());
+            yield return StartCoroutine(RollRoutine(true));
 
-            yield return new WaitForSeconds(resultWaitTime);
+            if (isAutoRolling)
+                yield return new WaitForSeconds(resultWaitTime);
         }
+
+        autoRollCoroutine = null;
+
+        if (!isRolling)
+            SetRollingVisual(false);
     }
 
-    private IEnumerator PlayOneRoll()
+    private IEnumerator RollRoutine(bool fromAutoRoll)
     {
+        if (isRolling)
+            yield break;
+
+        isRolling = true;
+
         PetUnitData finalPet = gachaSystem.RollPet();
 
         if (finalPet == null)
+        {
+            isRolling = false;
+
+            if (!isAutoRolling && !startAutoAfterCurrentRoll)
+                SetRollingVisual(false);
+
             yield break;
+        }
 
         float timer = 0f;
 
@@ -75,7 +133,8 @@ public class GachaController : MonoBehaviour
         {
             PetUnitData displayPet = gachaSystem.GetRandomDisplayPet();
 
-            gachaUI.ShowRollingPet(displayPet);
+            if (gachaUI != null)
+                gachaUI.ShowRollingPet(displayPet);
 
             timer += switchInterval;
 
@@ -84,10 +143,34 @@ public class GachaController : MonoBehaviour
 
         inventorySystem.AddPet(finalPet);
 
-        gachaUI.ShowFinalPet(finalPet);
+        if (gachaUI != null)
+            gachaUI.ShowFinalPet(finalPet);
 
         Debug.Log(
             $"Gacha Result: {finalPet.unitName} ({finalPet.rarity}) | Amount: {inventorySystem.GetAmount(finalPet)}"
         );
+
+        isRolling = false;
+
+        if (startAutoAfterCurrentRoll)
+        {
+            yield return new WaitForSeconds(resultWaitTime);
+            StartAutoRoll();
+            yield break;
+        }
+
+        if (!fromAutoRoll && !isAutoRolling)
+        {
+            yield return new WaitForSeconds(0.3f);
+            SetRollingVisual(false);
+        }
+    }
+
+    private void SetRollingVisual(bool value)
+    {
+        if (gachaUI == null)
+            return;
+
+        gachaUI.SetRollVisual(value);
     }
 }

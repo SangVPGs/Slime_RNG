@@ -13,7 +13,7 @@ public class MapChunk : MonoBehaviour
     public Transform EndPoint => endPoint;
     public Transform CheckPoint => checkPoint;
 
-    public int Level => data != null ? data.level : -1;
+    public int Level => data != null ? data.level : 0;
 
     private MapData data;
     private bool isUnlocked;

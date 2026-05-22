@@ -13,8 +13,6 @@ public class PartyUI : MonoBehaviour
     {
         if (partySystem != null)
             partySystem.OnPartyChanged += ShowParty;
-
-        ShowParty();
     }
 
     private void OnDisable()
@@ -23,10 +21,17 @@ public class PartyUI : MonoBehaviour
             partySystem.OnPartyChanged -= ShowParty;
     }
 
+    private void Start()
+    {
+        ShowParty();
+    }
+
     public void ShowParty()
     {
         if (partySystem == null || partySystem.Data == null)
+        {
             return;
+        }
 
         ClearOldItems();
 

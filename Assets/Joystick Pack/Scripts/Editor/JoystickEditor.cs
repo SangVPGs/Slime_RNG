@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEditor;
 
 [CustomEditor(typeof(Joystick), true)]
@@ -11,6 +9,8 @@ public class JoystickEditor : Editor
     private SerializedProperty axisOptions;
     private SerializedProperty snapX;
     private SerializedProperty snapY;
+    private SerializedProperty pressArea;
+    private SerializedProperty limitArea;
     protected SerializedProperty background;
     private SerializedProperty handle;
 
@@ -23,6 +23,8 @@ public class JoystickEditor : Editor
         axisOptions = serializedObject.FindProperty("axisOptions");
         snapX = serializedObject.FindProperty("snapX");
         snapY = serializedObject.FindProperty("snapY");
+        pressArea = serializedObject.FindProperty("pressArea");
+        limitArea = serializedObject.FindProperty("limitArea");
         background = serializedObject.FindProperty("background");
         handle = serializedObject.FindProperty("handle");
     }
@@ -54,6 +56,8 @@ public class JoystickEditor : Editor
         EditorGUILayout.PropertyField(axisOptions, new GUIContent("Axis Options", "Which axes the joystick uses."));
         EditorGUILayout.PropertyField(snapX, new GUIContent("Snap X", "Snap the horizontal input to a whole value."));
         EditorGUILayout.PropertyField(snapY, new GUIContent("Snap Y", "Snap the vertical input to a whole value."));
+        EditorGUILayout.PropertyField(pressArea, new GUIContent("Press Area"));
+        EditorGUILayout.PropertyField(limitArea, new GUIContent("Limit Area"));
     }
 
     protected virtual void DrawComponents()

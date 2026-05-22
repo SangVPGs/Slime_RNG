@@ -6,7 +6,7 @@ public static class MapProgressSave
 
     public static void SaveCurrentMapLevel(int level)
     {
-        if (level <= 0)
+        if (level < 0)
             return;
 
         PlayerPrefs.SetInt(CurrentMapLevelKey, level);
@@ -15,7 +15,7 @@ public static class MapProgressSave
         Debug.Log($"Saved current map level: {level}");
     }
 
-    public static int LoadCurrentMapLevel(int defaultLevel = 1)
+    public static int LoadCurrentMapLevel(int defaultLevel = 0)
     {
         return PlayerPrefs.GetInt(CurrentMapLevelKey, defaultLevel);
     }

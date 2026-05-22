@@ -39,6 +39,9 @@ public class ThirdPersonCamera : MonoBehaviour
     [SerializeField] private bool enableTouchInput = true;
     [SerializeField] private bool ignoreTouchOverUI = true;
 
+    [Tooltip("Touch bắt đầu từ tỉ lệ này trở sang phải thì được dùng để xoay camera. 0.5 = nửa phải màn hình.")]
+    [SerializeField, Range(0f, 1f)] private float cameraTouchStartScreenRatio = 0.5f;
+
     private Vector3 currentFocusPoint;
 
     private float yaw;
@@ -46,6 +49,8 @@ public class ThirdPersonCamera : MonoBehaviour
 
     private float targetDistance;
     private float currentDistance;
+
+    private int cameraTouchId = -1;
 
     private void Awake()
     {
@@ -66,6 +71,8 @@ public class ThirdPersonCamera : MonoBehaviour
     {
         lookAction?.action.Disable();
         zoomAction?.action.Disable();
+
+        cameraTouchId = -1;
     }
 
     private void LateUpdate()
@@ -123,35 +130,112 @@ public class ThirdPersonCamera : MonoBehaviour
         if (Touchscreen.current == null)
             return;
 
-        TouchControl touch0 = Touchscreen.current.primaryTouch;
-
-        if (!touch0.press.isPressed)
-            return;
-
         int activeTouchCount = GetActiveTouchCount();
 
-        if (activeTouchCount == 1)
+        if (activeTouchCount == 0)
         {
-            if (ignoreTouchOverUI && IsPointerOverUI(touch0.touchId.ReadValue()))
-                return;
-
-            Vector2 delta = touch0.delta.ReadValue();
-
-            yaw += delta.x * touchSensitivity;
-            pitch -= delta.y * touchSensitivity;
-
-            pitch = Mathf.Clamp(pitch, minPitch, maxPitch);
+            cameraTouchId = -1;
+            return;
         }
-        else if (activeTouchCount >= 2)
+
+        if (TryGetPinchTouches(out TouchControl pinchTouch0, out TouchControl pinchTouch1))
         {
-            HandlePinchZoom();
+            cameraTouchId = -1;
+            HandlePinchZoom(pinchTouch0, pinchTouch1);
+            return;
+        }
+
+        TouchControl cameraTouch = GetCameraTouch();
+
+        if (cameraTouch == null)
+        {
+            TryStartCameraTouch();
+            return;
+        }
+
+        Vector2 delta = cameraTouch.delta.ReadValue();
+
+        yaw += delta.x * touchSensitivity;
+        pitch -= delta.y * touchSensitivity;
+
+        pitch = Mathf.Clamp(pitch, minPitch, maxPitch);
+    }
+
+    private void TryStartCameraTouch()
+    {
+        foreach (TouchControl touch in Touchscreen.current.touches)
+        {
+            if (!touch.press.isPressed)
+                continue;
+
+            int touchId = touch.touchId.ReadValue();
+            Vector2 position = touch.position.ReadValue();
+
+            if (position.x < Screen.width * cameraTouchStartScreenRatio)
+                continue;
+
+            if (ignoreTouchOverUI && IsPointerOverUI(touchId))
+                continue;
+
+            cameraTouchId = touchId;
+            return;
         }
     }
 
-    private void HandlePinchZoom()
+    private TouchControl GetCameraTouch()
     {
-        TouchControl touch0 = Touchscreen.current.touches[0];
-        TouchControl touch1 = Touchscreen.current.touches[1];
+        if (cameraTouchId < 0)
+            return null;
+
+        foreach (TouchControl touch in Touchscreen.current.touches)
+        {
+            if (!touch.press.isPressed)
+                continue;
+
+            if (touch.touchId.ReadValue() == cameraTouchId)
+                return touch;
+        }
+
+        cameraTouchId = -1;
+        return null;
+    }
+
+    private bool TryGetPinchTouches(out TouchControl touch0, out TouchControl touch1)
+    {
+        touch0 = null;
+        touch1 = null;
+
+        if (Touchscreen.current == null)
+            return false;
+
+        foreach (TouchControl touch in Touchscreen.current.touches)
+        {
+            if (!touch.press.isPressed)
+                continue;
+
+            int touchId = touch.touchId.ReadValue();
+
+            if (ignoreTouchOverUI && IsPointerOverUI(touchId))
+                continue;
+
+            if (touch0 == null)
+            {
+                touch0 = touch;
+            }
+            else
+            {
+                touch1 = touch;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void HandlePinchZoom(TouchControl touch0, TouchControl touch1)
+    {
+        if (touch0 == null || touch1 == null)
+            return;
 
         if (!touch0.press.isPressed || !touch1.press.isPressed)
             return;

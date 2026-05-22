@@ -80,8 +80,7 @@ public class PartyController : MonoBehaviour
             return;
         }
 
-        IReadOnlyList<PetUnitData> partyPets =
-            partySystem.Data.Pets;
+        IReadOnlyList<PetUnitData> partyPets = partySystem.Data.Pets;
 
         RemoveMissingPets(partyPets);
         SpawnNewPets(partyPets);

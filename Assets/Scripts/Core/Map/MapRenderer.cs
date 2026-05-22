@@ -62,12 +62,12 @@ public class MapRenderer : MonoBehaviour
             return;
         }
 
-        int savedLevel = MapProgressSave.LoadCurrentMapLevel(1);
+        int savedLevel = MapProgressSave.LoadCurrentMapLevel(0);
 
         MapChunk targetMap = FindMapByLevel(savedLevel);
 
         if (targetMap == null)
-            targetMap = FindMapByLevel(1);
+            targetMap = FindMapByLevel(0);
 
         if (targetMap == null || targetMap.CheckPoint == null)
         {
@@ -93,7 +93,7 @@ public class MapRenderer : MonoBehaviour
     {
         foreach (MapChunk chunk in spawnedMaps)
         {
-            if (chunk.Level == level - 1)
+            if (chunk.Level == level)
                 return chunk;
         }
 
