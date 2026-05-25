@@ -15,11 +15,11 @@ MonoBehaviour:
   id: P003
   unitName: Bull
   model: {fileID: 919132149155446097, guid: a75b2795e6daa9e4395b5db5c28c5037, type: 3}
-  hp: 100
-  atk: 10
-  atkRange: 1.5
+  hp: 3800
+  atk: 317
+  atkRange: 2
   atkSpeed: 1
-  speed: 12
-  heal: 5
+  speed: 10
+  heal: 50
   rarity: 2
   icon: {fileID: 21300000, guid: 81ba28ad7d8c54c43b604f9c52a762a7, type: 3}

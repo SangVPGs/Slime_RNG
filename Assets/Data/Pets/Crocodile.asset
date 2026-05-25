@@ -15,11 +15,11 @@ MonoBehaviour:
   id: P006
   unitName: Crocodile
   model: {fileID: 919132149155446097, guid: be92a3362f2847a4d8c7c363c20c5698, type: 3}
-  hp: 100
-  atk: 10
-  atkRange: 1.5
-  atkSpeed: 1
+  hp: 4000
+  atk: 349
+  atkRange: 2
+  atkSpeed: 0.9
   speed: 6
-  heal: 5
+  heal: 50
   rarity: 2
   icon: {fileID: 21300000, guid: 81ba28ad7d8c54c43b604f9c52a762a7, type: 3}

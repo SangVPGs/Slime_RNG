@@ -15,11 +15,11 @@ MonoBehaviour:
   id: P013
   unitName: Rat
   model: {fileID: 919132149155446097, guid: c91c2c764a89c7846a9752963e6e5869, type: 3}
-  hp: 100
-  atk: 10
-  atkRange: 1.5
-  atkSpeed: 1
-  speed: 8
-  heal: 3
+  hp: 800
+  atk: 169
+  atkRange: 2
+  atkSpeed: 1.2
+  speed: 10
+  heal: 13
   rarity: 0
   icon: {fileID: 21300000, guid: 81ba28ad7d8c54c43b604f9c52a762a7, type: 3}

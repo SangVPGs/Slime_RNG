@@ -15,11 +15,11 @@ MonoBehaviour:
   id: P008
   unitName: Dragon
   model: {fileID: 919132149155446097, guid: 7d858c08564d7bb4881ccc480a46c6fe, type: 3}
-  hp: 100
-  atk: 10
-  atkRange: 1.5
-  atkSpeed: 1
-  speed: 8
-  heal: 3
+  hp: 8000
+  atk: 700
+  atkRange: 7
+  atkSpeed: 2
+  speed: 15
+  heal: 130
   rarity: 4
   icon: {fileID: 21300000, guid: 81ba28ad7d8c54c43b604f9c52a762a7, type: 3}

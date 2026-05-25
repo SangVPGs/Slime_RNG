@@ -4,6 +4,7 @@ public class PartyUI : MonoBehaviour
 {
     [Header("System")]
     [SerializeField] private PartySystem partySystem;
+    [SerializeField] private InventorySystem inventorySystem;
 
     [Header("UI")]
     [SerializeField] private Transform contentParent;
@@ -29,9 +30,7 @@ public class PartyUI : MonoBehaviour
     public void ShowParty()
     {
         if (partySystem == null || partySystem.Data == null)
-        {
             return;
-        }
 
         ClearOldItems();
 
@@ -47,7 +46,15 @@ public class PartyUI : MonoBehaviour
 
     private void OnPartyPetClicked(PetUnitData petData)
     {
-        partySystem.RemovePet(petData);
+        if (petData == null || partySystem == null || inventorySystem == null)
+            return;
+
+        bool removedFromParty = partySystem.RemovePet(petData);
+
+        if (!removedFromParty)
+            return;
+
+        inventorySystem.SetPetInParty(petData, false);
     }
 
     private void ClearOldItems()

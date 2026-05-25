@@ -9,6 +9,7 @@ public class GachaController : MonoBehaviour
 
     [Header("UI")]
     [SerializeField] private GachaUI gachaUI;
+    [SerializeField] private string gachaUIId;
 
     [Header("Timing")]
     [SerializeField] private float rollingDuration = 2f;
@@ -24,12 +25,18 @@ public class GachaController : MonoBehaviour
 
     public void Roll()
     {
-        if (isRolling || isAutoRolling)
+        if (isAutoRolling)
+        {
+            ShowGachaPanel();
+            return;
+        }
+
+        if (isRolling)
             return;
 
-        SetRollingVisual(true);
+        ShowGachaPanel();
 
-        rollCoroutine = StartCoroutine(RollRoutine(false));
+        StartCoroutine(RollRoutine(false));
     }
 
     public void AutoRoll()
@@ -43,8 +50,6 @@ public class GachaController : MonoBehaviour
         if (isRolling)
         {
             startAutoAfterCurrentRoll = true;
-
-            SetRollingVisual(true);
 
             if (gachaUI != null)
                 gachaUI.SetAutoRollVisual(true);
@@ -62,8 +67,6 @@ public class GachaController : MonoBehaviour
 
         isAutoRolling = true;
         startAutoAfterCurrentRoll = false;
-
-        SetRollingVisual(true);
 
         if (gachaUI != null)
             gachaUI.SetAutoRollVisual(true);
@@ -85,9 +88,6 @@ public class GachaController : MonoBehaviour
             autoRollCoroutine = null;
         }
 
-        if (!isRolling)
-            SetRollingVisual(false);
-
         if (gachaUI != null)
             gachaUI.SetAutoRollVisual(false);
     }
@@ -103,9 +103,6 @@ public class GachaController : MonoBehaviour
         }
 
         autoRollCoroutine = null;
-
-        if (!isRolling)
-            SetRollingVisual(false);
     }
 
     private IEnumerator RollRoutine(bool fromAutoRoll)
@@ -121,9 +118,6 @@ public class GachaController : MonoBehaviour
         {
             isRolling = false;
 
-            if (!isAutoRolling && !startAutoAfterCurrentRoll)
-                SetRollingVisual(false);
-
             yield break;
         }
 
@@ -134,7 +128,7 @@ public class GachaController : MonoBehaviour
             PetUnitData displayPet = gachaSystem.GetRandomDisplayPet();
 
             if (gachaUI != null)
-                gachaUI.ShowRollingPet(displayPet);
+                gachaUI.ShowPet(displayPet);
 
             timer += switchInterval;
 
@@ -144,33 +138,37 @@ public class GachaController : MonoBehaviour
         inventorySystem.AddPet(finalPet);
 
         if (gachaUI != null)
-            gachaUI.ShowFinalPet(finalPet);
+            gachaUI.ShowPet(finalPet);
 
         Debug.Log(
-            $"Gacha Result: {finalPet.unitName} ({finalPet.rarity}) | Amount: {inventorySystem.GetAmount(finalPet)}"
+            $"Gacha Result: {finalPet.unitName} ({finalPet.rarity})"
         );
 
         isRolling = false;
 
+        yield return new WaitForSeconds(resultWaitTime);
+
         if (startAutoAfterCurrentRoll)
         {
-            yield return new WaitForSeconds(resultWaitTime);
             StartAutoRoll();
             yield break;
         }
 
-        if (!fromAutoRoll && !isAutoRolling)
+        if (!fromAutoRoll || !isAutoRolling)
         {
-            yield return new WaitForSeconds(0.3f);
-            SetRollingVisual(false);
+            HideGachaPanel();
         }
     }
 
-    private void SetRollingVisual(bool value)
+    public void ShowGachaPanel()
     {
-        if (gachaUI == null)
-            return;
+        if (UIManager.Instance != null)
+            UIManager.Instance.Show(gachaUIId);
+    }
 
-        gachaUI.SetRollVisual(value);
+    private void HideGachaPanel()
+    {
+        if (UIManager.Instance != null)
+            UIManager.Instance.Hide(gachaUIId);
     }
 }

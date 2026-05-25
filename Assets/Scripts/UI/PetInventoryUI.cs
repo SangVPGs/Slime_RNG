@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using System.Linq;
+using TMPro;
 using UnityEngine;
 
 public class PetInventoryUI : MonoBehaviour
@@ -9,6 +12,14 @@ public class PetInventoryUI : MonoBehaviour
     [Header("UI")]
     [SerializeField] private Transform contentParent;
     [SerializeField] private PetUIItem petItemPrefab;
+
+    [Header("Sort Button Text")]
+    [SerializeField] private TMP_Text sortTypeText;
+    [SerializeField] private TMP_Text sortDirectionText;
+
+    private bool descending = true;
+    private bool sortByRarity = false;
+    private List<InventorySystem.PetInventoryEntry> currentEntries = new();
 
     private void OnEnable()
     {
@@ -27,55 +38,96 @@ public class PetInventoryUI : MonoBehaviour
         ShowPets();
     }
 
+    public void ToggleSortDirection()
+    {
+        descending = !descending;
+        ApplySort();
+    }
+
+    public void ToggleSortType()
+    {
+        sortByRarity = !sortByRarity;
+        ApplySort();
+    }
+
     public void ShowPets()
     {
-        if (inventorySystem == null)
-        {
-            Debug.LogError("InventorySystem missing.");
+        if (inventorySystem == null || inventorySystem.Data == null)
             return;
+
+        currentEntries = inventorySystem.Data.Pets
+            .Where(entry =>
+                entry != null &&
+                entry.petData != null &&
+                !entry.isInParty)
+            .ToList();
+
+        ApplySort();
+    }
+
+    private void ApplySort()
+    {
+        if (sortByRarity)
+        {
+            currentEntries = descending
+                ? currentEntries
+                    .OrderByDescending(entry => entry.petData.rarity)
+                    .ToList()
+                : currentEntries
+                    .OrderBy(entry => entry.petData.rarity)
+                    .ToList();
+
+            if (sortTypeText != null)
+                sortTypeText.text = "Rarity";
+        }
+        else
+        {
+            currentEntries = descending
+                ? currentEntries
+                    .OrderByDescending(entry => entry.petData.combatPower)
+                    .ToList()
+                : currentEntries
+                    .OrderBy(entry => entry.petData.combatPower)
+                    .ToList();
+
+            if (sortTypeText != null)
+                sortTypeText.text = "CP";
         }
 
-        if (inventorySystem.Data == null)
-        {
-            Debug.LogError("InventoryData missing.");
-            return;
-        }
+        if (sortDirectionText != null)
+            sortDirectionText.text = descending ? "DESC" : "ASC";
 
+        RefreshUI();
+    }
+
+    private void RefreshUI()
+    {
         if (contentParent == null || petItemPrefab == null)
-        {
-            Debug.LogError("PetInventoryUI UI reference missing.");
             return;
-        }
 
         ClearOldItems();
 
-        foreach (InventorySystem.PetInventoryEntry entry in inventorySystem.Data.Pets)
+        foreach (InventorySystem.PetInventoryEntry entry in currentEntries)
         {
             if (entry == null || entry.petData == null)
                 continue;
 
             PetUIItem item = Instantiate(petItemPrefab, contentParent);
-
             item.SetupInventory(entry.petData, OnPetClicked);
         }
     }
 
     private void OnPetClicked(PetUnitData petData)
     {
-        if (petData == null)
+        if (petData == null || partySystem == null || inventorySystem == null)
             return;
 
-        Debug.Log($"Inventory clicked pet: {petData.unitName}");
+        bool addedToParty = partySystem.AddPet(petData);
 
-        if (partySystem == null)
-        {
-            Debug.LogError("PartySystem missing in PetInventoryUI.");
+        if (!addedToParty)
             return;
-        }
 
-        bool success = partySystem.AddPet(petData);
-
-        Debug.Log($"Add pet to party result: {success}");
+        inventorySystem.SetPetInParty(petData, true);
     }
 
     private void ClearOldItems()

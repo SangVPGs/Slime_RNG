@@ -15,9 +15,9 @@ MonoBehaviour:
   id: S001
   unitName: Fire Slime
   model: {fileID: 919132149155446097, guid: a740e81291a5c7d4fab867b048e98f03, type: 3}
-  hp: 100
-  atk: 10
+  hp: 2000
+  atk: 150
   atkRange: 3
   atkSpeed: 1
-  speed: 3
+  speed: 5
   goldDrop: 10

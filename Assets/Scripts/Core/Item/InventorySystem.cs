@@ -22,52 +22,46 @@ public class InventorySystem : MonoBehaviour
         Load();
     }
 
-    public void AddPet(PetUnitData pet, int amount = 1)
-    {
-        if (pet == null)
-            return;
-
-        bool success = data.AddPet(pet, amount);
-
-        if (!success)
-            return;
-
-        Save();
-
-        OnInventoryChanged?.Invoke();
-    }
-
-    public bool RemovePet(PetUnitData pet, int amount = 1)
+    public bool AddPet(PetUnitData pet)
     {
         if (pet == null)
             return false;
 
-        bool success = data.RemovePet(pet, amount);
+        bool success = data.AddPet(pet);
 
         if (!success)
             return false;
 
         Save();
-
         OnInventoryChanged?.Invoke();
 
         return true;
     }
 
-    public int GetAmount(PetUnitData pet)
+    public bool SetPetInParty(PetUnitData pet, bool isInParty)
     {
-        return data.GetAmount(pet);
+        if (pet == null)
+            return false;
+
+        bool success = data.SetPetInParty(pet, isInParty);
+
+        if (!success)
+            return false;
+
+        Save();
+        OnInventoryChanged?.Invoke();
+
+        return true;
     }
 
-    public bool HasPet(PetUnitData pet)
+    public bool IsPetInParty(PetUnitData pet)
     {
-        return data.HasPet(pet);
+        return data.IsPetInParty(pet);
     }
 
     private void Save()
     {
         string json = JsonUtility.ToJson(data);
-
         PlayerPrefs.SetString(SaveKey, json);
         PlayerPrefs.Save();
     }
@@ -83,7 +77,6 @@ public class InventorySystem : MonoBehaviour
             return;
 
         JsonUtility.FromJsonOverwrite(json, data);
-
         data.SetDatabase(petDatabase);
     }
 
@@ -117,7 +110,7 @@ public class InventorySystem : MonoBehaviour
                     {
                         petId = entry.petId,
                         petData = petData,
-                        amount = entry.amount
+                        isInParty = entry.isInParty
                     });
                 }
 
@@ -130,87 +123,55 @@ public class InventorySystem : MonoBehaviour
             petDatabase = database;
         }
 
-        public bool AddPet(PetUnitData pet, int amount = 1)
+        public bool AddPet(PetUnitData pet)
         {
-            if (pet == null)
-                return false;
-
-            if (string.IsNullOrEmpty(pet.Id))
-            {
-                Debug.LogError($"{pet.name} missing petId.");
-                return false;
-            }
-
-            if (amount <= 0)
+            if (pet == null || string.IsNullOrEmpty(pet.Id))
                 return false;
 
             foreach (PetInventoryEntry entry in pets)
             {
                 if (entry.petId == pet.Id)
-                {
-                    entry.amount += amount;
-                    return true;
-                }
+                    return false;
             }
 
             pets.Add(new PetInventoryEntry
             {
                 petId = pet.Id,
-                amount = amount
+                isInParty = false
             });
 
             return true;
         }
 
-        public bool RemovePet(PetUnitData pet, int amount = 1)
+        public bool SetPetInParty(PetUnitData pet, bool isInParty)
         {
-            if (pet == null)
+            if (pet == null || string.IsNullOrEmpty(pet.Id))
                 return false;
 
-            if (string.IsNullOrEmpty(pet.Id))
-                return false;
-
-            if (amount <= 0)
-                return false;
-
-            for (int i = 0; i < pets.Count; i++)
+            foreach (PetInventoryEntry entry in pets)
             {
-                PetInventoryEntry entry = pets[i];
-
                 if (entry.petId != pet.Id)
                     continue;
 
-                if (entry.amount < amount)
-                    return false;
-
-                entry.amount -= amount;
-
-                if (entry.amount <= 0)
-                    pets.RemoveAt(i);
-
+                entry.isInParty = isInParty;
                 return true;
             }
 
             return false;
         }
 
-        public int GetAmount(PetUnitData pet)
+        public bool IsPetInParty(PetUnitData pet)
         {
             if (pet == null || string.IsNullOrEmpty(pet.Id))
-                return 0;
+                return false;
 
             foreach (PetInventoryEntry entry in pets)
             {
                 if (entry.petId == pet.Id)
-                    return entry.amount;
+                    return entry.isInParty;
             }
 
-            return 0;
-        }
-
-        public bool HasPet(PetUnitData pet)
-        {
-            return GetAmount(pet) > 0;
+            return false;
         }
 
         public void Clear()
@@ -226,6 +187,6 @@ public class InventorySystem : MonoBehaviour
 
         [NonSerialized] public PetUnitData petData;
 
-        public int amount;
+        public bool isInParty;
     }
 }

@@ -18,6 +18,9 @@ public class PetUnitData : UnitData
     public PetRarity rarity;
     public Sprite icon;
 
+    private float CombatPower => (atk * 5 + hp * 2 + speed * 10 + atkSpeed * 10 + heal * 7);
+    public int combatPower => Mathf.RoundToInt(CombatPower);
+
 #if UNITY_EDITOR
     private void OnValidate()
     {

@@ -4,13 +4,9 @@ using UnityEngine.UI;
 
 public class GachaUI : MonoBehaviour
 {
-    [Header("Text")]
+    [Header("Visual")]
     [SerializeField] private TMP_Text resultText;
-
-    [Header("Roll Button")]
-    [SerializeField] private Button rollButton;
-    [SerializeField] private Image rollButtonImage;
-    [SerializeField] private TMP_Text rollButtonText;
+    [SerializeField] private Image petImage;
 
     [Header("Auto Roll Button")]
     [SerializeField] private Image autoRollButtonImage;
@@ -19,26 +15,18 @@ public class GachaUI : MonoBehaviour
     [Header("Colors")]
     [SerializeField] private Color normalColor = Color.white;
     [SerializeField] private Color rollingColor = Color.green;
-    [SerializeField] private Color disabledColor = Color.gray;
     [SerializeField] private Color normalTextColor = Color.black;
     [SerializeField] private Color activeTextColor = Color.white;
 
-    public void ShowRollingPet(PetUnitData pet)
+    public void ShowPet(PetUnitData pet)
     {
         if (resultText == null || pet == null)
             return;
 
-        ChangeTextColor(pet.rarity);
-        resultText.text = $"{pet.unitName} ({pet.rarity})";
-    }
-
-    public void ShowFinalPet(PetUnitData pet)
-    {
-        if (resultText == null || pet == null)
-            return;
+        petImage.sprite = pet.icon;
 
         ChangeTextColor(pet.rarity);
-        resultText.text = $"Got: {pet.unitName} ({pet.rarity})";
+        resultText.text = $"{pet.unitName}";
     }
 
     public void SetAutoRollVisual(bool isRolling)
@@ -48,27 +36,6 @@ public class GachaUI : MonoBehaviour
 
         if (autoRollButtonText != null)
             autoRollButtonText.color = isRolling ? activeTextColor : normalTextColor;
-
-        if (rollButton != null)
-            rollButton.interactable = !isRolling;
-
-        if (rollButtonImage != null)
-            rollButtonImage.color = isRolling ? disabledColor : normalColor;
-
-        if (rollButtonText != null)
-            rollButtonText.color = isRolling ? activeTextColor : normalTextColor;
-    }
-
-    public void SetRollVisual(bool isRolling)
-    {
-        if (rollButton != null)
-            rollButton.interactable = !isRolling;
-
-        if (rollButtonImage != null)
-            rollButtonImage.color = isRolling ? disabledColor : normalColor;
-
-        if (rollButtonText != null)
-            rollButtonText.color = isRolling ? activeTextColor : normalTextColor;
     }
 
     private void ChangeTextColor(PetRarity rarity)
