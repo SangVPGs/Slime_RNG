@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
 
@@ -38,9 +39,11 @@ public class ThirdPersonCamera : MonoBehaviour
     [Header("Mobile")]
     [SerializeField] private bool enableTouchInput = true;
     [SerializeField] private bool ignoreTouchOverUI = true;
-
-    [Tooltip("Touch bắt đầu từ tỉ lệ này trở sang phải thì được dùng để xoay camera. 0.5 = nửa phải màn hình.")]
     [SerializeField, Range(0f, 1f)] private float cameraTouchStartScreenRatio = 0.5f;
+
+    [Header("Touch Rules")]
+    [SerializeField] private Joystick moveJoystick;
+    [SerializeField] private float simultaneousTouchWindow = 0.12f;
 
     private Vector3 currentFocusPoint;
 
@@ -51,6 +54,10 @@ public class ThirdPersonCamera : MonoBehaviour
     private float currentDistance;
 
     private int cameraTouchId = -1;
+
+    private bool isPinchZooming;
+    private int zoomTouchId0 = -1;
+    private int zoomTouchId1 = -1;
 
     private void Awake()
     {
@@ -72,7 +79,7 @@ public class ThirdPersonCamera : MonoBehaviour
         lookAction?.action.Disable();
         zoomAction?.action.Disable();
 
-        cameraTouchId = -1;
+        ResetTouchState();
     }
 
     private void LateUpdate()
@@ -96,8 +103,9 @@ public class ThirdPersonCamera : MonoBehaviour
         if (lookInput.sqrMagnitude < 0.01f)
             return;
 
-        bool mouseIsMoving = Mouse.current != null &&
-                             Mouse.current.delta.ReadValue().sqrMagnitude > 0.01f;
+        bool mouseIsMoving =
+            Mouse.current != null &&
+            Mouse.current.delta.ReadValue().sqrMagnitude > 0.01f;
 
         float sensitivity = mouseIsMoving
             ? mouseSensitivity
@@ -115,7 +123,7 @@ public class ThirdPersonCamera : MonoBehaviour
             ? zoomAction.action.ReadValue<float>()
             : 0f;
 
-        if (Mathf.Abs(zoomInput) < 0.01f)
+        if (Mathf.Abs(zoomInput) < 0.1f)
             return;
 
         targetDistance -= zoomInput * zoomSpeed;
@@ -124,32 +132,95 @@ public class ThirdPersonCamera : MonoBehaviour
 
     private void HandleTouchInput()
     {
-        if (!enableTouchInput)
+        if (!enableTouchInput || Touchscreen.current == null)
             return;
 
-        if (Touchscreen.current == null)
-            return;
-
-        int activeTouchCount = GetActiveTouchCount();
-
-        if (activeTouchCount == 0)
+        if (GetActiveTouchCount() == 0)
         {
-            cameraTouchId = -1;
+            ResetTouchState();
             return;
         }
 
-        if (TryGetPinchTouches(out TouchControl pinchTouch0, out TouchControl pinchTouch1))
+        if (isPinchZooming)
         {
-            cameraTouchId = -1;
-            HandlePinchZoom(pinchTouch0, pinchTouch1);
+            HandleActivePinchZoom();
             return;
         }
 
+        if (TryStartPinchZoom())
+            return;
+
+        HandleRotateTouch();
+    }
+
+    private bool TryStartPinchZoom()
+    {
+        if (!TryGetTwoActiveTouches(out TouchControl touch0, out TouchControl touch1))
+            return false;
+
+        double diff = System.Math.Abs(
+            touch0.startTime.ReadValue() - touch1.startTime.ReadValue()
+        );
+
+        if (diff > simultaneousTouchWindow)
+            return false;
+
+        isPinchZooming = true;
+        MobileTouchLock.IsZooming = true;
+
+        zoomTouchId0 = touch0.touchId.ReadValue();
+        zoomTouchId1 = touch1.touchId.ReadValue();
+
+        cameraTouchId = -1;
+        MobileTouchLock.CameraTouchId = -1;
+
+        if (moveJoystick != null)
+            moveJoystick.ForceReset();
+
+        ApplyPinchZoom(touch0, touch1);
+
+        return true;
+    }
+
+    private void HandleActivePinchZoom()
+    {
+        TouchControl touch0 = GetTouchById(zoomTouchId0);
+        TouchControl touch1 = GetTouchById(zoomTouchId1);
+
+        if (touch0 == null || touch1 == null)
+        {
+            isPinchZooming = false;
+            MobileTouchLock.IsZooming = false;
+
+            zoomTouchId0 = -1;
+            zoomTouchId1 = -1;
+
+            return;
+        }
+
+        // Đang zoom thì khóa joystick + rotate
+        cameraTouchId = -1;
+        MobileTouchLock.CameraTouchId = -1;
+
+        if (moveJoystick != null && moveJoystick.IsDragging)
+            moveJoystick.ForceReset();
+
+        ApplyPinchZoom(touch0, touch1);
+    }
+
+    private void HandleRotateTouch()
+    {
         TouchControl cameraTouch = GetCameraTouch();
 
         if (cameraTouch == null)
         {
             TryStartCameraTouch();
+            return;
+        }
+
+        if (IsJoystickTouch(cameraTouch))
+        {
+            cameraTouchId = -1;
             return;
         }
 
@@ -166,6 +237,9 @@ public class ThirdPersonCamera : MonoBehaviour
         foreach (TouchControl touch in Touchscreen.current.touches)
         {
             if (!touch.press.isPressed)
+                continue;
+
+            if (IsJoystickTouch(touch))
                 continue;
 
             int touchId = touch.touchId.ReadValue();
@@ -192,6 +266,9 @@ public class ThirdPersonCamera : MonoBehaviour
             if (!touch.press.isPressed)
                 continue;
 
+            if (IsJoystickTouch(touch))
+                continue;
+
             if (touch.touchId.ReadValue() == cameraTouchId)
                 return touch;
         }
@@ -200,73 +277,59 @@ public class ThirdPersonCamera : MonoBehaviour
         return null;
     }
 
-    private bool TryGetPinchTouches(out TouchControl touch0, out TouchControl touch1)
+    private bool TryGetTwoActiveTouches(out TouchControl touch0, out TouchControl touch1)
     {
         touch0 = null;
         touch1 = null;
-
-        if (Touchscreen.current == null)
-            return false;
 
         foreach (TouchControl touch in Touchscreen.current.touches)
         {
             if (!touch.press.isPressed)
                 continue;
 
-            int touchId = touch.touchId.ReadValue();
-
-            if (ignoreTouchOverUI && IsPointerOverUI(touchId))
-                continue;
-
             if (touch0 == null)
             {
                 touch0 = touch;
+                continue;
             }
-            else
-            {
-                touch1 = touch;
-                return true;
-            }
+
+            touch1 = touch;
+            return true;
         }
 
         return false;
     }
 
-    private void HandlePinchZoom(TouchControl touch0, TouchControl touch1)
+    private TouchControl GetTouchById(int touchId)
     {
-        if (touch0 == null || touch1 == null)
-            return;
+        if (touchId < 0)
+            return null;
 
-        if (!touch0.press.isPressed || !touch1.press.isPressed)
-            return;
+        foreach (TouchControl touch in Touchscreen.current.touches)
+        {
+            if (!touch.press.isPressed)
+                continue;
 
-        Vector2 touch0Position = touch0.position.ReadValue();
-        Vector2 touch1Position = touch1.position.ReadValue();
+            if (touch.touchId.ReadValue() == touchId)
+                return touch;
+        }
 
-        Vector2 touch0PreviousPosition = touch0Position - touch0.delta.ReadValue();
-        Vector2 touch1PreviousPosition = touch1Position - touch1.delta.ReadValue();
+        return null;
+    }
 
-        float previousDistance = Vector2.Distance(
-            touch0PreviousPosition,
-            touch1PreviousPosition
-        );
+    private bool IsJoystickTouch(TouchControl touch)
+    {
+        if (moveJoystick == null)
+            return false;
 
-        float currentTouchDistance = Vector2.Distance(
-            touch0Position,
-            touch1Position
-        );
+        if (!moveJoystick.IsDragging)
+            return false;
 
-        float pinchDelta = currentTouchDistance - previousDistance;
-
-        targetDistance -= pinchDelta * touchZoomSpeed;
-        targetDistance = Mathf.Clamp(targetDistance, minDistance, maxDistance);
+        return touch.touchId.ReadValue() == moveJoystick.ActivePointerId;
     }
 
     private int GetActiveTouchCount()
     {
-        if (Touchscreen.current == null)
-            return 0;
-
         int count = 0;
 
         foreach (TouchControl touch in Touchscreen.current.touches)
@@ -278,12 +341,44 @@ public class ThirdPersonCamera : MonoBehaviour
         return count;
     }
 
+    private void ApplyPinchZoom(TouchControl touch0, TouchControl touch1)
+    {
+        Vector2 pos0 = touch0.position.ReadValue();
+        Vector2 pos1 = touch1.position.ReadValue();
+
+        Vector2 prev0 = pos0 - touch0.delta.ReadValue();
+        Vector2 prev1 = pos1 - touch1.delta.ReadValue();
+
+        float previousDistance = Vector2.Distance(prev0, prev1);
+        float currentDistance = Vector2.Distance(pos0, pos1);
+
+        float pinchDelta = currentDistance - previousDistance;
+
+        targetDistance -= pinchDelta * touchZoomSpeed;
+        targetDistance = Mathf.Clamp(targetDistance, minDistance, maxDistance);
+    }
+
     private bool IsPointerOverUI(int pointerId)
     {
-        if (UnityEngine.EventSystems.EventSystem.current == null)
+        if (EventSystem.current == null)
             return false;
 
-        return UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject(pointerId);
+        return EventSystem.current.IsPointerOverGameObject(pointerId);
+    }
+
+    private void ResetTouchState()
+    {
+        cameraTouchId = -1;
+
+        isPinchZooming = false;
+        zoomTouchId0 = -1;
+        zoomTouchId1 = -1;
+
+        MobileTouchLock.IsZooming = false;
+        MobileTouchLock.CameraTouchId = -1;
+
+        if (moveJoystick != null && moveJoystick.IsDragging)
+            moveJoystick.ForceReset();
     }
 
     private void UpdateCameraPosition()

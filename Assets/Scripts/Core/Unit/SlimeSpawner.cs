@@ -15,9 +15,10 @@ public class SlimeSpawner : MonoBehaviour
     [SerializeField] private Vector2 areaSize = new Vector2(50f, 50f);
     [SerializeField] private float spawnY = 0f;
 
-    [Header("Respawn Check Area")]
-    [SerializeField] private Vector2 respawnCheckAreaSize = new Vector2(80f, 80f);
-    [SerializeField] private float outOfRangeCheckInterval = 0.5f;
+    [Header("Out Of Range Check")]
+    [SerializeField] private Vector2 respawnCheckAreaSize = new Vector2(100f, 100f);
+    [SerializeField] private float outOfRangeCheckInterval = 0.75f;
+    [SerializeField] private float outOfRangeRespawnCooldown = 2f;
 
     [Header("First Map Limit")]
     [SerializeField] private bool limitFirstMapStart = true;
@@ -27,10 +28,11 @@ public class SlimeSpawner : MonoBehaviour
     [SerializeField] private float initialSpawnDelay = 1f;
     [SerializeField] private float spawnInterval = 2f;
 
-    [Header("Respawn")]
-    [SerializeField] private float respawnDelay = 3f;
+    [Header("Death Respawn")]
+    [SerializeField] private float deathRespawnDelay = 3f;
 
     private readonly List<SlimeUnit> slimePool = new();
+    private readonly Dictionary<SlimeUnit, float> nextOutOfRangeRespawnTime = new();
 
     private float spawnTimer;
     private float outOfRangeCheckTimer;
@@ -45,13 +47,15 @@ public class SlimeSpawner : MonoBehaviour
     private void Start()
     {
         spawnTimer = initialSpawnDelay;
+        outOfRangeCheckTimer = outOfRangeCheckInterval;
         canStartSpawning = true;
     }
 
     private void Update()
     {
         FollowPlayerZ();
-        HandleRespawn();
+
+        HandleDeathRespawn();
         HandleOutOfRangeRespawn();
         HandleSpawn();
     }
@@ -70,7 +74,10 @@ public class SlimeSpawner : MonoBehaviour
     private void CreatePool()
     {
         if (slimeData == null || slimePrefab == null)
+        {
+            Debug.LogWarning("SlimeData hoặc SlimePrefab chưa được gán.");
             return;
+        }
 
         for (int i = 0; i < poolSize; i++)
         {
@@ -82,10 +89,10 @@ public class SlimeSpawner : MonoBehaviour
 
             slime.Init(slimeData);
             slime.SetSpawner(this);
-
             slime.gameObject.SetActive(false);
 
             slimePool.Add(slime);
+            nextOutOfRangeRespawnTime[slime] = 0f;
         }
     }
 
@@ -106,8 +113,36 @@ public class SlimeSpawner : MonoBehaviour
         if (slime == null)
             return;
 
-        Vector3 spawnPosition = GetRandomEdgePosition();
-        slime.Respawn(spawnPosition);
+        slime.Respawn(GetRandomEdgePosition());
+        nextOutOfRangeRespawnTime[slime] = Time.time + outOfRangeRespawnCooldown;
+    }
+
+    private SlimeUnit GetInactiveSlime()
+    {
+        foreach (SlimeUnit slime in slimePool)
+        {
+            if (slime == null)
+                continue;
+
+            if (slime.IsWaitingRespawn)
+                continue;
+
+            if (!slime.gameObject.activeSelf)
+                return slime;
+        }
+
+        return null;
+    }
+
+    private void HandleDeathRespawn()
+    {
+        foreach (SlimeUnit slime in slimePool)
+        {
+            if (slime == null)
+                continue;
+
+            slime.TickRespawn(Time.deltaTime);
+        }
     }
 
     private void HandleOutOfRangeRespawn()
@@ -130,10 +165,17 @@ public class SlimeSpawner : MonoBehaviour
             if (slime.IsDead)
                 continue;
 
+            if (slime.IsWaitingRespawn)
+                continue;
+
+            if (Time.time < nextOutOfRangeRespawnTime[slime])
+                continue;
+
             if (IsInsideRespawnCheckArea(slime.transform.position))
                 continue;
 
             slime.Respawn(GetRandomEdgePosition());
+            nextOutOfRangeRespawnTime[slime] = Time.time + outOfRangeRespawnCooldown;
         }
     }
 
@@ -144,44 +186,10 @@ public class SlimeSpawner : MonoBehaviour
         float halfWidth = respawnCheckAreaSize.x * 0.5f;
         float halfHeight = respawnCheckAreaSize.y * 0.5f;
 
-        float minX = center.x - halfWidth;
-        float maxX = center.x + halfWidth;
-
-        float minZ = center.z - halfHeight;
-        float maxZ = center.z + halfHeight;
-
-        return position.x >= minX &&
-               position.x <= maxX &&
-               position.z >= minZ &&
-               position.z <= maxZ;
-    }
-
-    private SlimeUnit GetInactiveSlime()
-    {
-        foreach (SlimeUnit slime in slimePool)
-        {
-            if (slime == null)
-                continue;
-
-            if (slime.IsWaitingRespawn)
-                continue;
-
-            if (!slime.gameObject.activeSelf)
-                return slime;
-        }
-
-        return null;
-    }
-
-    private void HandleRespawn()
-    {
-        foreach (SlimeUnit slime in slimePool)
-        {
-            if (slime == null)
-                continue;
-
-            slime.TickRespawn(Time.deltaTime);
-        }
+        return position.x >= center.x - halfWidth &&
+               position.x <= center.x + halfWidth &&
+               position.z >= center.z - halfHeight &&
+               position.z <= center.z + halfHeight;
     }
 
     private void FollowPlayerZ()
@@ -191,13 +199,15 @@ public class SlimeSpawner : MonoBehaviour
 
         Vector3 position = transform.position;
         position.z = player.position.z;
-
         transform.position = position;
     }
 
     public void RequestRespawn(SlimeUnit slime)
     {
-        slime.StartRespawn(respawnDelay);
+        if (slime == null)
+            return;
+
+        slime.StartRespawn(deathRespawnDelay);
     }
 
     public Vector3 GetRespawnPosition()
@@ -217,22 +227,22 @@ public class SlimeSpawner : MonoBehaviour
 
         switch (edge)
         {
-            case 0:
+            case 0: // Top
                 x = Random.Range(-halfWidth, halfWidth);
                 z = halfHeight;
                 break;
 
-            case 1:
+            case 1: // Bottom
                 x = Random.Range(-halfWidth, halfWidth);
                 z = -halfHeight;
                 break;
 
-            case 2:
+            case 2: // Left
                 x = -halfWidth;
                 z = Random.Range(-halfHeight, halfHeight);
                 break;
 
-            case 3:
+            case 3: // Right
                 x = halfWidth;
                 z = Random.Range(-halfHeight, halfHeight);
                 break;
@@ -250,17 +260,17 @@ public class SlimeSpawner : MonoBehaviour
 #if UNITY_EDITOR
     private void OnDrawGizmosSelected()
     {
-        Vector3 spawnCenter = new Vector3(transform.position.x, spawnY, transform.position.z);
+        Vector3 center = new Vector3(transform.position.x, spawnY, transform.position.z);
 
         Gizmos.color = Color.green;
         Gizmos.DrawWireCube(
-            spawnCenter,
+            center,
             new Vector3(areaSize.x, 0.1f, areaSize.y)
         );
 
         Gizmos.color = Color.cyan;
         Gizmos.DrawWireCube(
-            spawnCenter,
+            center,
             new Vector3(respawnCheckAreaSize.x, 0.15f, respawnCheckAreaSize.y)
         );
 

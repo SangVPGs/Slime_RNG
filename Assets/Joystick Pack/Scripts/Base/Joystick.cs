@@ -3,39 +3,13 @@ using UnityEngine.EventSystems;
 
 public class Joystick : MonoBehaviour, IPointerDownHandler, IDragHandler, IPointerUpHandler
 {
-    public float Horizontal => snapX ? SnapFloat(input.x, AxisOptions.Horizontal) : input.x;
-    public float Vertical => snapY ? SnapFloat(input.y, AxisOptions.Vertical) : input.y;
-    public Vector2 Direction => new Vector2(Horizontal, Vertical);
+    public float Horizontal => IsControlLocked ? 0f : (snapX ? SnapFloat(input.x, AxisOptions.Horizontal) : input.x);
+    public float Vertical => IsControlLocked ? 0f : (snapY ? SnapFloat(input.y, AxisOptions.Vertical) : input.y);
+    public Vector2 Direction => IsControlLocked ? Vector2.zero : new Vector2(Horizontal, Vertical);
 
-    public float HandleRange
-    {
-        get => handleRange;
-        set => handleRange = Mathf.Abs(value);
-    }
-
-    public float DeadZone
-    {
-        get => deadZone;
-        set => deadZone = Mathf.Abs(value);
-    }
-
-    public AxisOptions AxisOptions
-    {
-        get => axisOptions;
-        set => axisOptions = value;
-    }
-
-    public bool SnapX
-    {
-        get => snapX;
-        set => snapX = value;
-    }
-
-    public bool SnapY
-    {
-        get => snapY;
-        set => snapY = value;
-    }
+    public bool IsDragging => activePointerId >= 0;
+    public bool IsControlLocked => MobileTouchLock.IsZooming;
+    public int ActivePointerId => activePointerId;
 
     [Header("Value")]
     [SerializeField] private float handleRange = 1f;
@@ -45,41 +19,37 @@ public class Joystick : MonoBehaviour, IPointerDownHandler, IDragHandler, IPoint
     [SerializeField] private bool snapY = false;
 
     [Header("Components")]
-    [SerializeField] protected RectTransform background = null;
-    [SerializeField] private RectTransform handle = null;
+    [SerializeField] protected RectTransform background;
+    [SerializeField] private RectTransform handle;
 
     [Header("Touch Areas")]
-    [Tooltip("Vùng được phép bắt đầu chạm. Nếu để trống sẽ dùng RectTransform của chính joystick.")]
-    [SerializeField] private RectTransform pressArea = null;
+    [SerializeField] private RectTransform pressArea;
+    [SerializeField] private RectTransform limitArea;
 
-    [Tooltip("Vùng được phép kéo tiếp. Nếu kéo ra ngoài vùng này joystick sẽ reset. Nếu để trống sẽ dùng Press Area.")]
-    [SerializeField] private RectTransform limitArea = null;
+    private RectTransform baseRect;
+    private Canvas canvas;
+    private Camera cam;
 
-    private RectTransform baseRect = null;
+    protected Vector2 input;
 
-    protected Canvas canvas;
-    protected Camera cam;
-
-    protected Vector2 input = Vector2.zero;
-
-    private bool isDragging;
+    private int activePointerId = -1;
 
     protected virtual void Start()
     {
-        HandleRange = handleRange;
-        DeadZone = deadZone;
+        handleRange = Mathf.Abs(handleRange);
+        deadZone = Mathf.Abs(deadZone);
 
         baseRect = GetComponent<RectTransform>();
         canvas = GetComponentInParent<Canvas>();
 
         if (canvas == null)
-            Debug.LogError("The Joystick is not placed inside a canvas");
+            Debug.LogError($"{name}: Joystick must be inside a Canvas.");
 
         if (background == null)
-            Debug.LogError("Joystick background is missing.");
+            Debug.LogError($"{name}: Background is missing.");
 
         if (handle == null)
-            Debug.LogError("Joystick handle is missing.");
+            Debug.LogError($"{name}: Handle is missing.");
 
         Vector2 center = new Vector2(0.5f, 0.5f);
 
@@ -95,21 +65,39 @@ public class Joystick : MonoBehaviour, IPointerDownHandler, IDragHandler, IPoint
         }
     }
 
+    protected virtual void OnDisable()
+    {
+        ForceReset();
+    }
+
     public virtual void OnPointerDown(PointerEventData eventData)
     {
+        if (MobileTouchLock.IsZooming)
+            return;
+
+        // Nếu camera đang rotate, joystick không được cướp touch.
+        if (MobileTouchLock.HasCamera)
+            return;
+
         if (!IsInsidePressArea(eventData))
             return;
 
-        isDragging = true;
+        activePointerId = eventData.pointerId;
+        MobileTouchLock.JoystickTouchId = eventData.pointerId;
 
         OnJoystickPressed(eventData);
-
         OnDrag(eventData);
     }
 
     public virtual void OnDrag(PointerEventData eventData)
     {
-        if (!isDragging)
+        if (MobileTouchLock.IsZooming)
+        {
+            ResetJoystick(eventData);
+            return;
+        }
+
+        if (eventData.pointerId != activePointerId)
             return;
 
         if (!IsInsideLimitArea(eventData))
@@ -120,10 +108,13 @@ public class Joystick : MonoBehaviour, IPointerDownHandler, IDragHandler, IPoint
 
         UpdateCamera();
 
-        Vector2 position = RectTransformUtility.WorldToScreenPoint(cam, background.position);
-        Vector2 radius = background.sizeDelta / 2f;
+        if (background == null || handle == null || canvas == null)
+            return;
 
-        input = (eventData.position - position) / (radius * canvas.scaleFactor);
+        Vector2 center = RectTransformUtility.WorldToScreenPoint(cam, background.position);
+        Vector2 radius = background.rect.size / 2f;
+
+        input = (eventData.position - center) / (radius * canvas.scaleFactor);
 
         FormatInput();
         HandleInput(input.magnitude, input.normalized, radius, cam);
@@ -133,60 +124,87 @@ public class Joystick : MonoBehaviour, IPointerDownHandler, IDragHandler, IPoint
 
     public virtual void OnPointerUp(PointerEventData eventData)
     {
+        if (eventData.pointerId != activePointerId)
+            return;
+
         ResetJoystick(eventData);
     }
 
-    protected virtual void OnJoystickPressed(PointerEventData eventData)
+    public void ForceReset()
     {
+        if (MobileTouchLock.JoystickTouchId == activePointerId)
+            MobileTouchLock.JoystickTouchId = -1;
 
-    }
-
-    protected virtual void OnJoystickReset(PointerEventData eventData)
-    {
-
-    }
-
-    protected virtual void HandleInput(float magnitude, Vector2 normalised, Vector2 radius, Camera cam)
-    {
-        if (magnitude > deadZone)
-        {
-            if (magnitude > 1f)
-                input = normalised;
-        }
-        else
-        {
-            input = Vector2.zero;
-        }
-    }
-
-    protected void ResetJoystick(PointerEventData eventData)
-    {
-        isDragging = false;
-
+        activePointerId = -1;
         input = Vector2.zero;
 
         if (handle != null)
             handle.anchoredPosition = Vector2.zero;
+    }
 
+    protected virtual void OnJoystickPressed(PointerEventData eventData)
+    {
+    }
+
+    protected virtual void OnJoystickReset(PointerEventData eventData)
+    {
+    }
+
+    protected virtual void HandleInput(float magnitude, Vector2 normalised, Vector2 radius, Camera cam)
+    {
+        if (magnitude <= deadZone)
+        {
+            input = Vector2.zero;
+            return;
+        }
+
+        if (magnitude > 1f)
+            input = normalised;
+    }
+
+    protected void ResetJoystick(PointerEventData eventData)
+    {
+        ForceReset();
         OnJoystickReset(eventData);
     }
 
-    protected bool IsInsidePressArea(PointerEventData eventData)
+    protected Vector2 ScreenPointToAnchoredPosition(Vector2 screenPosition)
     {
-        RectTransform area = pressArea;
+        UpdateCamera();
 
-        if (area == null)
-            area = transform as RectTransform;
+        if (baseRect == null || background == null)
+            return Vector2.zero;
+
+        if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
+            baseRect,
+            screenPosition,
+            cam,
+            out Vector2 localPoint))
+        {
+            Vector2 pivotOffset = baseRect.pivot * baseRect.rect.size;
+
+            return localPoint
+                   - (background.anchorMax * baseRect.rect.size)
+                   + pivotOffset;
+        }
+
+        return Vector2.zero;
+    }
+
+    private bool IsInsidePressArea(PointerEventData eventData)
+    {
+        RectTransform area = pressArea != null
+            ? pressArea
+            : transform as RectTransform;
 
         return IsInsideArea(area, eventData);
     }
 
-    protected bool IsInsideLimitArea(PointerEventData eventData)
+    private bool IsInsideLimitArea(PointerEventData eventData)
     {
-        RectTransform area = limitArea;
-
-        if (area == null)
-            area = pressArea;
+        RectTransform area = limitArea != null
+            ? limitArea
+            : pressArea;
 
         if (area == null)
             area = transform as RectTransform;
@@ -252,35 +270,7 @@ public class Joystick : MonoBehaviour, IPointerDownHandler, IDragHandler, IPoint
             return value;
         }
 
-        if (value > 0f)
-            return 1f;
-
-        if (value < 0f)
-            return -1f;
-
-        return 0f;
-    }
-
-    protected Vector2 ScreenPointToAnchoredPosition(Vector2 screenPosition)
-    {
-        UpdateCamera();
-
-        Vector2 localPoint = Vector2.zero;
-
-        if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
-            baseRect,
-            screenPosition,
-            cam,
-            out localPoint))
-        {
-            Vector2 pivotOffset = baseRect.pivot * baseRect.sizeDelta;
-
-            return localPoint
-                   - (background.anchorMax * baseRect.sizeDelta)
-                   + pivotOffset;
-        }
-
-        return Vector2.zero;
+        return value > 0f ? 1f : -1f;
     }
 }
 
