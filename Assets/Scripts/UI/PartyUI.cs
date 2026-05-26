@@ -40,7 +40,7 @@ public class PartyUI : MonoBehaviour
                 continue;
 
             PetUIItem item = Instantiate(petItemPrefab, contentParent);
-            item.SetupParty(pet, OnPartyPetClicked);
+            item.SetupParty(pet, OnPartyPetClicked, !partySystem.AutoEquip);
         }
     }
 

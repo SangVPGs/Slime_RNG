@@ -1,25 +1,41 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class PartySystem : MonoBehaviour
 {
     private const string SaveKey = "Party_Data";
+    private const string AutoEquipKey = "Party_AutoEquip";
 
     public event Action OnPartyChanged;
 
     [Header("Database")]
     [SerializeField] private PetDatabase petDatabase;
 
+    [Header("Inventory")]
+    [SerializeField] private InventorySystem inventorySystem;
+
     [Header("Data")]
     [SerializeField] private PartyData data = new();
 
+    private bool autoEquip;
+
     public PartyData Data => data;
+    public bool AutoEquip => autoEquip;
 
     private void Awake()
     {
         data.SetDatabase(petDatabase);
         Load();
+
+        autoEquip = PlayerPrefs.GetInt(AutoEquipKey, 0) == 1;
+    }
+
+    private void Start()
+    {
+        if (autoEquip)
+            AutoEquipFromInventory();
     }
 
     public bool AddPet(PetUnitData petData)
@@ -51,6 +67,54 @@ public class PartySystem : MonoBehaviour
     public void ClearParty()
     {
         data.ClearParty();
+
+        Save();
+        OnPartyChanged?.Invoke();
+    }
+
+    public void ToggleAutoEquip()
+    {
+        autoEquip = !autoEquip;
+
+        Debug.Log($"Auto Equip toggled: {autoEquip}");
+
+        PlayerPrefs.SetInt(AutoEquipKey, autoEquip ? 1 : 0);
+        PlayerPrefs.Save();
+
+        if (autoEquip)
+            AutoEquipFromInventory();
+        else
+            OnPartyChanged.Invoke();
+    }
+
+    public void AutoEquipFromInventory()
+    {
+        if (inventorySystem == null)
+            return;
+
+        if (inventorySystem.Data == null)
+            return;
+
+        List<PetUnitData> bestPets = inventorySystem.Data.Pets
+            .Where(entry => entry != null && entry.petData != null)
+            .Select(entry => entry.petData)
+            .OrderByDescending(pet => pet.combatPower)
+            .Take(data.MaxPartySize)
+            .ToList();
+
+        data.ClearParty();
+
+        foreach (PetUnitData pet in bestPets)
+        {
+            bool added = data.AddPet(pet);
+        }
+
+        inventorySystem.SetAllPetsOutParty();
+
+        foreach (PetUnitData pet in bestPets)
+        {
+            bool setInParty = inventorySystem.SetPetInParty(pet, true);
+        }
 
         Save();
         OnPartyChanged?.Invoke();

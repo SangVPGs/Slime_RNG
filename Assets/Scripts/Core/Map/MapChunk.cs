@@ -62,13 +62,11 @@ public class MapChunk : MonoBehaviour
 
         if (GameManager.Instance == null)
         {
-            Debug.LogError("GameManager missing.");
             return false;
         }
 
         if (!GameManager.Instance.SpendGold(data.unlockCost))
         {
-            Debug.Log($"Not enough gold. Need: {data.unlockCost}");
             return false;
         }
 
@@ -84,7 +82,5 @@ public class MapChunk : MonoBehaviour
 
         if (unlockUI != null)
             unlockUI.gameObject.SetActive(false);
-
-        Debug.Log($"Unlocked map level {Level}");
     }
 }

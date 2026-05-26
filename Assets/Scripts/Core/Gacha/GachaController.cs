@@ -7,9 +7,13 @@ public class GachaController : MonoBehaviour
     [SerializeField] private GachaSystem gachaSystem;
     [SerializeField] private InventorySystem inventorySystem;
 
-    [Header("UI")]
+    [Header("UI Views")]
     [SerializeField] private GachaUI gachaUI;
-    [SerializeField] private string gachaUIId;
+    [SerializeField] private GachaMiniUI gachaMiniUI;
+
+    [Header("UI Manager Ids")]
+    [SerializeField] private string gachaUIId = "2";
+    [SerializeField] private string gachaMiniUIId = "4";
 
     [Header("Timing")]
     [SerializeField] private float rollingDuration = 2f;
@@ -17,24 +21,25 @@ public class GachaController : MonoBehaviour
     [SerializeField] private float resultWaitTime = 1f;
 
     private Coroutine autoRollCoroutine;
-    private Coroutine rollCoroutine;
 
     private bool isAutoRolling;
     private bool isRolling;
     private bool startAutoAfterCurrentRoll;
+    private bool useMiniResult;
 
     public void Roll()
     {
         if (isAutoRolling)
         {
-            ShowGachaPanel();
+            ShowFullPanel();
             return;
         }
 
         if (isRolling)
             return;
 
-        ShowGachaPanel();
+        useMiniResult = false;
+        ShowFullPanel();
 
         StartCoroutine(RollRoutine(false));
     }
@@ -50,6 +55,9 @@ public class GachaController : MonoBehaviour
         if (isRolling)
         {
             startAutoAfterCurrentRoll = true;
+            useMiniResult = false;
+
+            ShowFullPanel();
 
             if (gachaUI != null)
                 gachaUI.SetAutoRollVisual(true);
@@ -60,13 +68,29 @@ public class GachaController : MonoBehaviour
         StartAutoRoll();
     }
 
-    public void StartAutoRoll()
+    public void HideButton()
+    {
+        if (isAutoRolling)
+        {
+            useMiniResult = true;
+            ShowMiniPanel();
+        }
+        else
+        {
+            HideAllPanels();
+        }
+    }
+
+    private void StartAutoRoll()
     {
         if (isAutoRolling)
             return;
 
         isAutoRolling = true;
         startAutoAfterCurrentRoll = false;
+        useMiniResult = false;
+
+        ShowFullPanel();
 
         if (gachaUI != null)
             gachaUI.SetAutoRollVisual(true);
@@ -74,13 +98,11 @@ public class GachaController : MonoBehaviour
         autoRollCoroutine = StartCoroutine(AutoRollRoutine());
     }
 
-    public void StopAutoRoll()
+    private void StopAutoRoll()
     {
-        if (!isAutoRolling && !startAutoAfterCurrentRoll)
-            return;
-
         isAutoRolling = false;
         startAutoAfterCurrentRoll = false;
+        useMiniResult = false;
 
         if (autoRollCoroutine != null)
         {
@@ -90,6 +112,8 @@ public class GachaController : MonoBehaviour
 
         if (gachaUI != null)
             gachaUI.SetAutoRollVisual(false);
+
+        HideAllPanels();
     }
 
     private IEnumerator AutoRollRoutine()
@@ -117,7 +141,6 @@ public class GachaController : MonoBehaviour
         if (finalPet == null)
         {
             isRolling = false;
-
             yield break;
         }
 
@@ -126,9 +149,7 @@ public class GachaController : MonoBehaviour
         while (timer < rollingDuration)
         {
             PetUnitData displayPet = gachaSystem.GetRandomDisplayPet();
-
-            if (gachaUI != null)
-                gachaUI.ShowPet(displayPet);
+            ShowRollingPet(displayPet);
 
             timer += switchInterval;
 
@@ -137,12 +158,9 @@ public class GachaController : MonoBehaviour
 
         inventorySystem.AddPet(finalPet);
 
-        if (gachaUI != null)
-            gachaUI.ShowPet(finalPet);
+        ShowFinalPet(finalPet);
 
-        Debug.Log(
-            $"Gacha Result: {finalPet.unitName} ({finalPet.rarity})"
-        );
+        Debug.Log($"Gacha Result: {finalPet.unitName} ({finalPet.rarity})");
 
         isRolling = false;
 
@@ -150,25 +168,66 @@ public class GachaController : MonoBehaviour
 
         if (startAutoAfterCurrentRoll)
         {
+            startAutoAfterCurrentRoll = false;
             StartAutoRoll();
             yield break;
         }
 
-        if (!fromAutoRoll || !isAutoRolling)
+        if (!fromAutoRoll && !isAutoRolling)
+            HideAllPanels();
+    }
+
+    private void ShowRollingPet(PetUnitData pet)
+    {
+        if (useMiniResult)
+            gachaMiniUI?.ShowRollingPet(pet);
+        else
+            gachaUI?.ShowRollingPet(pet);
+    }
+
+    private void ShowFinalPet(PetUnitData pet)
+    {
+        if (useMiniResult)
+            gachaMiniUI?.ShowFinalPet(pet);
+        else
+            gachaUI?.ShowFinalPet(pet);
+    }
+
+    private void ShowFullPanel()
+    {
+        useMiniResult = false;
+
+        if (UIManager.Instance == null)
+            return;
+
+        UIManager.Instance.Show(gachaUIId);
+        UIManager.Instance.Hide(gachaMiniUIId);
+
+        gachaMiniUI?.ClearResult();
+    }
+
+    private void ShowMiniPanel()
+    {
+        useMiniResult = true;
+
+        if (UIManager.Instance == null)
+            return;
+
+        UIManager.Instance.Hide(gachaUIId);
+        UIManager.Instance.Show(gachaMiniUIId);
+
+        gachaUI?.ClearResult();
+    }
+
+    private void HideAllPanels()
+    {
+        if (UIManager.Instance != null)
         {
-            HideGachaPanel();
-        }
-    }
-
-    public void ShowGachaPanel()
-    {
-        if (UIManager.Instance != null)
-            UIManager.Instance.Show(gachaUIId);
-    }
-
-    private void HideGachaPanel()
-    {
-        if (UIManager.Instance != null)
             UIManager.Instance.Hide(gachaUIId);
+            UIManager.Instance.Hide(gachaMiniUIId);
+        }
+
+        gachaUI?.ClearResult();
+        gachaMiniUI?.ClearResult();
     }
 }

@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class PetInventoryUI : MonoBehaviour
 {
@@ -13,9 +14,15 @@ public class PetInventoryUI : MonoBehaviour
     [SerializeField] private Transform contentParent;
     [SerializeField] private PetUIItem petItemPrefab;
 
-    [Header("Sort Button Text")]
+    [Header("UI Text")]
     [SerializeField] private TMP_Text sortTypeText;
     [SerializeField] private TMP_Text sortDirectionText;
+    [SerializeField] private TMP_Text autoEquipText;
+
+    [Header("Auto Equip Btn")]
+    [SerializeField] private Image autoEquipButtonImage;
+    [SerializeField] private Color autoEquipOnColor = new Color(3,209,3);
+    [SerializeField] private Color autoEquipOffColor = new Color(209, 19, 3);
 
     private bool descending = true;
     private bool sortByRarity = false;
@@ -35,6 +42,7 @@ public class PetInventoryUI : MonoBehaviour
 
     private void Start()
     {
+        UpdateAutoEquipBtnUI();
         ShowPets();
     }
 
@@ -48,6 +56,37 @@ public class PetInventoryUI : MonoBehaviour
     {
         sortByRarity = !sortByRarity;
         ApplySort();
+    }
+
+    public void ToggleAutoEquip()
+    {
+        if (partySystem == null)
+            return;
+
+        partySystem.ToggleAutoEquip();
+
+        UpdateAutoEquipBtnUI();
+        ShowPets();
+    }
+
+    private void UpdateAutoEquipBtnUI()
+    {
+        if (partySystem == null)
+            return;
+
+        bool autoEquip = partySystem.AutoEquip;
+
+        if (autoEquipText != null)
+        {
+            autoEquipText.text = autoEquip ? "ON" : "OFF";
+        }
+
+        if (autoEquipButtonImage != null)
+        {
+            autoEquipButtonImage.color = autoEquip
+                ? autoEquipOnColor
+                : autoEquipOffColor;
+        }
     }
 
     public void ShowPets()
@@ -113,7 +152,7 @@ public class PetInventoryUI : MonoBehaviour
                 continue;
 
             PetUIItem item = Instantiate(petItemPrefab, contentParent);
-            item.SetupInventory(entry.petData, OnPetClicked);
+            item.SetupInventory(entry.petData, OnPetClicked, !partySystem.AutoEquip);
         }
     }
 

@@ -58,7 +58,6 @@ public class MapRenderer : MonoBehaviour
     {
         if (player == null)
         {
-            Debug.LogError("Player is missing.");
             return;
         }
 
@@ -71,7 +70,6 @@ public class MapRenderer : MonoBehaviour
 
         if (targetMap == null || targetMap.CheckPoint == null)
         {
-            Debug.LogError("Checkpoint is missing.");
             return;
         }
 

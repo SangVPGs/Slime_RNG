@@ -54,6 +54,16 @@ public class InventorySystem : MonoBehaviour
         return true;
     }
 
+    public void SetAllPetsOutParty()
+    {
+        data.SetAllPetsOutParty();
+
+        Save();
+
+        OnInventoryChanged?.Invoke();
+    }
+
+
     public bool IsPetInParty(PetUnitData pet)
     {
         return data.IsPetInParty(pet);
@@ -172,6 +182,17 @@ public class InventorySystem : MonoBehaviour
             }
 
             return false;
+        }
+
+        public void SetAllPetsOutParty()
+        {
+            foreach (PetInventoryEntry entry in pets)
+            {
+                if (entry == null)
+                    continue;
+
+                entry.isInParty = false;
+            }
         }
 
         public void Clear()

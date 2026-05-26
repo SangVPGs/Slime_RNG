@@ -11,8 +11,6 @@ public static class MapProgressSave
 
         PlayerPrefs.SetInt(CurrentMapLevelKey, level);
         PlayerPrefs.Save();
-
-        Debug.Log($"Saved current map level: {level}");
     }
 
     public static int LoadCurrentMapLevel(int defaultLevel = 0)

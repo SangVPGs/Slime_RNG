@@ -20,22 +20,24 @@ public class PetUIItem : MonoBehaviour
     private PetUnitData petData;
     private Action<PetUnitData> onClicked;
 
-    public void SetupInventory(PetUnitData data,Action<PetUnitData> clickCallback)
+    private bool showButton;
+
+    public void SetupInventory(PetUnitData data, Action<PetUnitData> clickCallback, bool showButton)
     {
         SetupInfo(data);
 
         onClicked = clickCallback;
 
-        SetupButton(true,"Add",addColor);
+        SetupButton(showButton,"Add",addColor);
     }
 
-    public void SetupParty(PetUnitData data,Action<PetUnitData> clickCallback)
+    public void SetupParty(PetUnitData data,Action<PetUnitData> clickCallback, bool showButton)
     {
         SetupInfo(data);
 
         onClicked = clickCallback;
 
-        SetupButton(true,"Remove",removeColor);
+        SetupButton(showButton,"Remove",removeColor);
     }
 
     public void SetupIndex(PetUnitData data)
