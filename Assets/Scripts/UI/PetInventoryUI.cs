@@ -21,41 +21,47 @@ public class PetInventoryUI : MonoBehaviour
 
     [Header("Auto Equip Btn")]
     [SerializeField] private Image autoEquipButtonImage;
-    [SerializeField] private Color autoEquipOnColor = new Color(3,209,3);
-    [SerializeField] private Color autoEquipOffColor = new Color(209, 19, 3);
+    [SerializeField] private Color autoEquipOnColor = Color.green;
+    [SerializeField] private Color autoEquipOffColor = Color.red;
 
     private bool descending = true;
     private bool sortByRarity = false;
+
     private List<InventorySystem.PetInventoryEntry> currentEntries = new();
 
     private void OnEnable()
     {
         if (inventorySystem != null)
-            inventorySystem.OnInventoryChanged += ShowPets;
+            inventorySystem.OnInventoryChanged += Refresh;
+
+        if (partySystem != null)
+            partySystem.OnPartyChanged += Refresh;
     }
 
     private void OnDisable()
     {
         if (inventorySystem != null)
-            inventorySystem.OnInventoryChanged -= ShowPets;
+            inventorySystem.OnInventoryChanged -= Refresh;
+
+        if (partySystem != null)
+            partySystem.OnPartyChanged -= Refresh;
     }
 
     private void Start()
     {
-        UpdateAutoEquipBtnUI();
-        ShowPets();
+        Refresh();
     }
 
     public void ToggleSortDirection()
     {
         descending = !descending;
-        ApplySort();
+        Refresh();
     }
 
     public void ToggleSortType()
     {
         sortByRarity = !sortByRarity;
-        ApplySort();
+        Refresh();
     }
 
     public void ToggleAutoEquip()
@@ -64,9 +70,15 @@ public class PetInventoryUI : MonoBehaviour
             return;
 
         partySystem.ToggleAutoEquip();
+        Refresh();
+    }
 
+    private void Refresh()
+    {
         UpdateAutoEquipBtnUI();
-        ShowPets();
+        BuildEntries();
+        ApplySort();
+        RefreshUI();
     }
 
     private void UpdateAutoEquipBtnUI()
@@ -77,20 +89,18 @@ public class PetInventoryUI : MonoBehaviour
         bool autoEquip = partySystem.AutoEquip;
 
         if (autoEquipText != null)
-        {
             autoEquipText.text = autoEquip ? "ON" : "OFF";
-        }
 
         if (autoEquipButtonImage != null)
-        {
             autoEquipButtonImage.color = autoEquip
                 ? autoEquipOnColor
                 : autoEquipOffColor;
-        }
     }
 
-    public void ShowPets()
+    private void BuildEntries()
     {
+        currentEntries.Clear();
+
         if (inventorySystem == null || inventorySystem.Data == null)
             return;
 
@@ -100,8 +110,6 @@ public class PetInventoryUI : MonoBehaviour
                 entry.petData != null &&
                 !entry.isInParty)
             .ToList();
-
-        ApplySort();
     }
 
     private void ApplySort()
@@ -109,12 +117,8 @@ public class PetInventoryUI : MonoBehaviour
         if (sortByRarity)
         {
             currentEntries = descending
-                ? currentEntries
-                    .OrderByDescending(entry => entry.petData.rarity)
-                    .ToList()
-                : currentEntries
-                    .OrderBy(entry => entry.petData.rarity)
-                    .ToList();
+                ? currentEntries.OrderByDescending(entry => entry.petData.rarity).ToList()
+                : currentEntries.OrderBy(entry => entry.petData.rarity).ToList();
 
             if (sortTypeText != null)
                 sortTypeText.text = "Rarity";
@@ -123,10 +127,10 @@ public class PetInventoryUI : MonoBehaviour
         {
             currentEntries = descending
                 ? currentEntries
-                    .OrderByDescending(entry => entry.petData.combatPower)
+                    .OrderByDescending(entry => PetUnit.CalculateCombatPower(entry.petData, entry.level))
                     .ToList()
                 : currentEntries
-                    .OrderBy(entry => entry.petData.combatPower)
+                    .OrderBy(entry => PetUnit.CalculateCombatPower(entry.petData, entry.level))
                     .ToList();
 
             if (sortTypeText != null)
@@ -135,8 +139,6 @@ public class PetInventoryUI : MonoBehaviour
 
         if (sortDirectionText != null)
             sortDirectionText.text = descending ? "DESC" : "ASC";
-
-        RefreshUI();
     }
 
     private void RefreshUI()
@@ -146,27 +148,32 @@ public class PetInventoryUI : MonoBehaviour
 
         ClearOldItems();
 
+        bool canManualEquip = partySystem != null && !partySystem.AutoEquip;
+
         foreach (InventorySystem.PetInventoryEntry entry in currentEntries)
         {
             if (entry == null || entry.petData == null)
                 continue;
 
             PetUIItem item = Instantiate(petItemPrefab, contentParent);
-            item.SetupInventory(entry.petData, OnPetClicked, !partySystem.AutoEquip);
+
+            item.SetupInventory(
+                entry,
+                OnPetClicked,
+                canManualEquip
+            );
         }
     }
 
-    private void OnPetClicked(PetUnitData petData)
+    private void OnPetClicked(InventorySystem.PetInventoryEntry entry)
     {
-        if (petData == null || partySystem == null || inventorySystem == null)
+        if (entry == null || partySystem == null)
             return;
 
-        bool addedToParty = partySystem.AddPet(petData);
-
-        if (!addedToParty)
+        if (partySystem.AutoEquip)
             return;
 
-        inventorySystem.SetPetInParty(petData, true);
+        partySystem.AddPet(entry);
     }
 
     private void ClearOldItems()

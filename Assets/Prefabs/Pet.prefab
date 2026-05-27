@@ -118,14 +118,22 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   data: {fileID: 0}
+  unitInstanceId: 
+  currentLevel: 1
+  maxHp: 0
+  atk: 0
+  atkRange: 0
+  atkSpeed: 0
+  speed: 0
+  currentHp: 0
+  state: 0
   visualRoot: {fileID: 4611123222793444553}
-  animator: {fileID: 0}
+  animator: {fileID: 4285362219509449548}
   attackAnimationDuration: 0.5
   healthBarPrefab: {fileID: 4444393122452517489, guid: 355bc9d7596adb84382d3b06382a8b1a,
     type: 3}
   reviveHealDuration: 3
-  currentHp: 0
-  state: 0
+  heal: 0
   healInterval: 1
 --- !u!1 &3378763438639124113
 GameObject:

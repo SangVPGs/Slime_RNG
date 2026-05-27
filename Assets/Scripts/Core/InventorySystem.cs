@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class InventorySystem : MonoBehaviour
@@ -21,16 +22,16 @@ public class InventorySystem : MonoBehaviour
 
     private void Awake()
     {
-        data.SetDatabase(petDatabase);
         Load();
+        data.ResolvePetData(petDatabase);
     }
 
-    public bool AddPet(PetUnitData pet)
+    public bool AddPet(PetUnitData petData)
     {
-        if (pet == null)
+        if (petData == null)
             return false;
 
-        bool success = data.AddPet(pet);
+        bool success = data.AddPet(petData);
 
         if (!success)
             return false;
@@ -38,23 +39,19 @@ public class InventorySystem : MonoBehaviour
         Save();
 
         if (partySystem != null && partySystem.AutoEquip)
-        {
             partySystem.AutoEquipFromInventory();
-        }
         else
-        {
             OnInventoryChanged?.Invoke();
-        }
 
         return true;
     }
 
-    public bool SetPetInParty(PetUnitData pet, bool isInParty)
+    public bool SetPetInParty(InventorySystem.PetInventoryEntry entry, bool isInParty)
     {
-        if (pet == null)
+        if (entry == null)
             return false;
 
-        bool success = data.SetPetInParty(pet, isInParty);
+        bool success = data.SetPetInParty(entry, isInParty);
 
         if (!success)
             return false;
@@ -65,29 +62,47 @@ public class InventorySystem : MonoBehaviour
         return true;
     }
 
-    public bool SetPetInPartyWithoutNotify(PetUnitData pet, bool isInParty)
+    public bool SetPetInPartyWithoutNotify(InventorySystem.PetInventoryEntry entry, bool isInParty)
     {
-        if (pet == null)
+        if (entry == null)
             return false;
 
-        return data.SetPetInParty(pet, isInParty);
+        return data.SetPetInParty(entry, isInParty);
     }
 
-    public void SaveAndNotify()
+    public bool SetPetLevel(InventorySystem.PetInventoryEntry entry, int level)
     {
+        if (entry == null || entry.petData == null)
+            return false;
+
+        int newLevel = Mathf.Clamp(level, 1, entry.petData.maxLevel);
+
+        if (entry.level == newLevel)
+            return false;
+
+        entry.level = newLevel;
+
         Save();
         OnInventoryChanged?.Invoke();
+
+        return true;
     }
 
-    public bool IsPetInParty(PetUnitData pet)
+    public bool IsPetInParty(InventorySystem.PetInventoryEntry entry)
     {
-        return data.IsPetInParty(pet);
+        return data.IsPetInParty(entry);
     }
 
     public void SetAllPetsOutParty()
     {
         data.SetAllPetsOutParty();
 
+        Save();
+        OnInventoryChanged?.Invoke();
+    }
+
+    public void SaveAndNotify()
+    {
         Save();
         OnInventoryChanged?.Invoke();
     }
@@ -111,8 +126,6 @@ public class InventorySystem : MonoBehaviour
             return;
 
         JsonUtility.FromJsonOverwrite(json, data);
-
-        data.SetDatabase(petDatabase);
     }
 
     [Serializable]
@@ -120,109 +133,97 @@ public class InventorySystem : MonoBehaviour
     {
         [SerializeField] private List<PetInventoryEntry> pets = new();
 
-        [NonSerialized] private PetDatabase petDatabase;
+        public IReadOnlyList<PetInventoryEntry> Pets => pets;
 
-        public IReadOnlyList<PetInventoryEntry> Pets
+        public void ResolvePetData(PetDatabase database)
         {
-            get
-            {
-                List<PetInventoryEntry> result = new();
-
-                if (petDatabase == null)
-                    return result;
-
-                foreach (PetInventoryEntry entry in pets)
-                {
-                    if (entry == null)
-                        continue;
-
-                    PetUnitData petData = petDatabase.GetPetById(entry.petId);
-
-                    if (petData == null)
-                        continue;
-
-                    result.Add(new PetInventoryEntry
-                    {
-                        petId = entry.petId,
-                        petData = petData,
-                        isInParty = entry.isInParty
-                    });
-                }
-
-                return result;
-            }
-        }
-
-        public void SetDatabase(PetDatabase database)
-        {
-            petDatabase = database;
-        }
-
-        public bool AddPet(PetUnitData pet)
-        {
-            if (pet == null)
-                return false;
-
-            if (string.IsNullOrEmpty(pet.Id))
-            {
-                Debug.LogError($"{pet.name} missing pet Id.");
-                return false;
-            }
+            if (database == null)
+                return;
 
             foreach (PetInventoryEntry entry in pets)
             {
-                if (entry.petId == pet.Id)
-                    return false;
+                if (entry == null)
+                    continue;
+
+                if (string.IsNullOrEmpty(entry.petId))
+                    continue;
+
+                entry.petData = database.GetPetById(entry.petId);
+
+                if (entry.petData != null)
+                    entry.level = Mathf.Clamp(entry.level, 1, entry.petData.maxLevel);
             }
+        }
+
+        public bool AddPet(PetUnitData petData)
+        {
+            if (petData == null)
+                return false;
+
+            if (string.IsNullOrEmpty(petData.Id))
+            {
+                Debug.LogError($"{petData.name} missing pet Id.");
+                return false;
+            }
+
+            bool alreadyOwned = pets.Any(entry =>
+                entry != null &&
+                entry.petId == petData.Id);
+
+            if (alreadyOwned)
+                return false;
 
             pets.Add(new PetInventoryEntry
             {
-                petId = pet.Id,
-                isInParty = false
+                petId = petData.Id,
+                isInParty = false,
+                level = petData.defaultLevel,
+                petData = petData
             });
 
             return true;
         }
 
-        public bool SetPetInParty(PetUnitData pet, bool isInParty)
+        public bool SetPetInParty(PetInventoryEntry entry, bool isInParty)
         {
-            if (pet == null || string.IsNullOrEmpty(pet.Id))
+            if (entry == null || string.IsNullOrEmpty(entry.petId))
                 return false;
 
-            foreach (PetInventoryEntry entry in pets)
-            {
-                if (entry.petId != pet.Id)
-                    continue;
+            PetInventoryEntry found = GetEntryByPetId(entry.petId);
 
-                entry.isInParty = isInParty;
-                return true;
-            }
+            if (found == null)
+                return false;
 
-            return false;
+            found.isInParty = isInParty;
+            return true;
         }
 
-        public bool IsPetInParty(PetUnitData pet)
+        public bool IsPetInParty(PetInventoryEntry entry)
         {
-            if (pet == null || string.IsNullOrEmpty(pet.Id))
+            if (entry == null || string.IsNullOrEmpty(entry.petId))
                 return false;
 
-            foreach (PetInventoryEntry entry in pets)
-            {
-                if (entry.petId == pet.Id)
-                    return entry.isInParty;
-            }
+            PetInventoryEntry found = GetEntryByPetId(entry.petId);
 
-            return false;
+            return found != null && found.isInParty;
+        }
+
+        public PetInventoryEntry GetEntryByPetId(string petId)
+        {
+            if (string.IsNullOrEmpty(petId))
+                return null;
+
+            return pets.FirstOrDefault(entry =>
+                entry != null &&
+                entry.petId == petId);
         }
 
         public void SetAllPetsOutParty()
         {
             foreach (PetInventoryEntry entry in pets)
             {
-                if (entry == null)
-                    continue;
-
-                entry.isInParty = false;
+                if (entry != null)
+                    entry.isInParty = false;
             }
         }
 
@@ -237,6 +238,7 @@ public class InventorySystem : MonoBehaviour
     {
         public string petId;
         public bool isInParty;
+        public int level = 1;
 
         [NonSerialized] public PetUnitData petData;
     }

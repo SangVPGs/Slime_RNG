@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class MapChunk : MonoBehaviour
@@ -15,6 +16,9 @@ public class MapChunk : MonoBehaviour
 
     public int Level => data != null ? data.level : 0;
 
+    public IReadOnlyList<SlimeUnitData> Enemies =>
+        data != null ? data.enemies : null;
+
     private MapData data;
     private bool isUnlocked;
 
@@ -22,7 +26,7 @@ public class MapChunk : MonoBehaviour
     {
         data = mapData;
 
-        gameObject.name = $"Map_Level_{data.level}";
+        gameObject.name = $"Map_Level_{Level}";
 
         SpawnModel();
         LoadUnlockState();
@@ -61,16 +65,13 @@ public class MapChunk : MonoBehaviour
             return true;
 
         if (GameManager.Instance == null)
-        {
             return false;
-        }
 
         if (!GameManager.Instance.SpendGold(data.unlockCost))
-        {
             return false;
-        }
 
         Unlock();
+
         return true;
     }
 

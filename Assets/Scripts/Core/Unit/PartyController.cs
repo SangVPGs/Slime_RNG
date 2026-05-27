@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 public class PartyController : MonoBehaviour
@@ -23,7 +22,7 @@ public class PartyController : MonoBehaviour
     [SerializeField] private float scanInterval = 0.25f;
     [SerializeField] private float detectRange = 5f;
 
-    private readonly Dictionary<PetUnitData, PetUnit> partyMembers = new();
+    private readonly Dictionary<string, PetUnit> partyMembers = new();
 
     private SlimeUnit currentSlimeTarget;
     private float nextScanTime;
@@ -76,7 +75,7 @@ public class PartyController : MonoBehaviour
             return;
         }
 
-        IReadOnlyList<PetUnitData> partyPets = partySystem.Data.Pets;
+        IReadOnlyList<InventorySystem.PetInventoryEntry> partyPets = partySystem.Data.Pets;
 
         RemoveMissingPets(partyPets);
         SpawnNewPets(partyPets);
@@ -84,13 +83,24 @@ public class PartyController : MonoBehaviour
         currentSlimeTarget = null;
     }
 
-    private void RemoveMissingPets(IReadOnlyList<PetUnitData> partyPets)
+    private void RemoveMissingPets(IReadOnlyList<InventorySystem.PetInventoryEntry> partyPets)
     {
-        List<PetUnitData> removeList = new();
+        List<string> removeList = new();
 
-        foreach (var pair in partyMembers)
+        foreach (KeyValuePair<string, PetUnit> pair in partyMembers)
         {
-            if (!partyPets.Contains(pair.Key))
+            bool stillInParty = false;
+
+            foreach (InventorySystem.PetInventoryEntry entry in partyPets)
+            {
+                if (entry != null && entry.petId == pair.Key)
+                {
+                    stillInParty = true;
+                    break;
+                }
+            }
+
+            if (!stillInParty)
             {
                 if (pair.Value != null)
                     Destroy(pair.Value.gameObject);
@@ -99,22 +109,25 @@ public class PartyController : MonoBehaviour
             }
         }
 
-        foreach (PetUnitData petData in removeList)
+        foreach (string petId in removeList)
         {
-            partyMembers.Remove(petData);
+            partyMembers.Remove(petId);
         }
     }
 
-    private void SpawnNewPets(IReadOnlyList<PetUnitData> partyPets)
+    private void SpawnNewPets(IReadOnlyList<InventorySystem.PetInventoryEntry> partyPets)
     {
         for (int i = 0; i < partyPets.Count; i++)
         {
-            PetUnitData petData = partyPets[i];
+            InventorySystem.PetInventoryEntry entry = partyPets[i];
 
-            if (petData == null)
+            if (entry == null || entry.petData == null)
                 continue;
 
-            if (partyMembers.ContainsKey(petData))
+            if (string.IsNullOrEmpty(entry.petId))
+                continue;
+
+            if (partyMembers.ContainsKey(entry.petId))
                 continue;
 
             Vector3 spawnPosition = GetFollowPosition(i);
@@ -125,9 +138,10 @@ public class PartyController : MonoBehaviour
                 Quaternion.identity
             );
 
-            petUnit.Init(petData);
+            petUnit.Init(entry.petData, entry.petId);
+            petUnit.SetLevel(entry.level);
 
-            partyMembers.Add(petData, petUnit);
+            partyMembers.Add(entry.petId, petUnit);
         }
     }
 
@@ -200,7 +214,7 @@ public class PartyController : MonoBehaviour
         if (currentSlimeTarget == null)
             return;
 
-        foreach (var pair in partyMembers)
+        foreach (KeyValuePair<string, PetUnit> pair in partyMembers)
         {
             PetUnit pet = pair.Value;
 
@@ -213,7 +227,7 @@ public class PartyController : MonoBehaviour
             }
             else
             {
-                float petStopDistance = pet.Data.atkRange * 0.9f;
+                float petStopDistance = pet.AtkRange * 0.9f;
 
                 pet.MoveTo(
                     currentSlimeTarget.transform.position,
@@ -231,7 +245,7 @@ public class PartyController : MonoBehaviour
         Vector3 offset = slime.transform.position - pet.transform.position;
         offset.y = 0f;
 
-        float range = pet.Data.atkRange;
+        float range = pet.AtkRange;
 
         return offset.sqrMagnitude <= range * range;
     }
@@ -241,7 +255,7 @@ public class PartyController : MonoBehaviour
         if (slime == null)
             return false;
 
-        foreach (var pair in partyMembers)
+        foreach (KeyValuePair<string, PetUnit> pair in partyMembers)
         {
             PetUnit pet = pair.Value;
 
@@ -257,7 +271,7 @@ public class PartyController : MonoBehaviour
 
     private bool IsPartyTooFarFromPlayer()
     {
-        foreach (var pair in partyMembers)
+        foreach (KeyValuePair<string, PetUnit> pair in partyMembers)
         {
             PetUnit pet = pair.Value;
 
@@ -278,7 +292,7 @@ public class PartyController : MonoBehaviour
     {
         int index = 0;
 
-        foreach (var pair in partyMembers)
+        foreach (KeyValuePair<string, PetUnit> pair in partyMembers)
         {
             PetUnit pet = pair.Value;
 
@@ -304,7 +318,7 @@ public class PartyController : MonoBehaviour
 
     public void ClearParty()
     {
-        foreach (var pair in partyMembers)
+        foreach (KeyValuePair<string, PetUnit> pair in partyMembers)
         {
             if (pair.Value != null)
                 Destroy(pair.Value.gameObject);

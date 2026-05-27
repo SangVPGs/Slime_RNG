@@ -17,6 +17,10 @@ public class SlimeUnit : Unit
     [Header("Movement")]
     [SerializeField] private float stopDistanceFromPlayer = 2f;
 
+    [Header("Slime Level Growth")]
+    [SerializeField] private int hpPerLevel = 10;
+    [SerializeField] private int atkPerLevel = 2;
+
     private SlimeSpawner spawner;
 
     private bool waitingRespawn;
@@ -39,6 +43,36 @@ public class SlimeUnit : Unit
         DisableRootMotion();
     }
 
+    public override void Init(UnitData unitData)
+    {
+        if (unitData is not SlimeUnitData)
+            return;
+
+        base.Init(unitData);
+
+        ResetSlimeRuntime();
+    }
+
+    public override void Init(UnitData unitData, string instanceId)
+    {
+        if (unitData is not SlimeUnitData)
+            return;
+
+        base.Init(unitData, instanceId);
+
+        ResetSlimeRuntime();
+    }
+
+    protected override void RecalculateStats()
+    {
+        base.RecalculateStats();
+
+        int levelOffset = Mathf.Max(0, currentLevel - 1);
+
+        maxHp += hpPerLevel * levelOffset;
+        atk += atkPerLevel * levelOffset;
+    }
+
     private void FixedUpdate()
     {
         if (!CanAct())
@@ -56,13 +90,8 @@ public class SlimeUnit : Unit
         MoveToPlayer();
     }
 
-    public override void Init(UnitData unitData)
+    private void ResetSlimeRuntime()
     {
-        if (unitData is not SlimeUnitData)
-            return;
-
-        base.Init(unitData);
-
         currentPetTarget = null;
         nextScanTime = 0f;
         waitingRespawn = false;
@@ -175,10 +204,7 @@ public class SlimeUnit : Unit
 
     private PetUnit FindFirstAlivePetInDetectRange()
     {
-        if (data == null)
-            return null;
-
-        float range = Mathf.Max(detectRange, data.atkRange);
+        float range = Mathf.Max(detectRange, atkRange);
 
         Collider[] hits = Physics.OverlapSphere(
             transform.position,
@@ -262,6 +288,16 @@ public class SlimeUnit : Unit
             GameManager.Instance.AddGold(SlimeData.goldDrop);
     }
 
+    public override bool LevelUp()
+    {
+        bool success = base.LevelUp();
+
+        if (!success)
+            return false;
+
+        return true;
+    }
+
     public void OnDeathAnimationFinished()
     {
         if (!IsDead)
@@ -280,40 +316,28 @@ public class SlimeUnit : Unit
 
     public void StartRespawn(float delay)
     {
-        if (waitingRespawn)
-            return;
-
         waitingRespawn = true;
         respawnTimer = delay;
     }
 
-    public void TickRespawn(float deltaTime)
+    public bool TickRespawn(float deltaTime)
     {
         if (!waitingRespawn)
-            return;
+            return false;
 
         if (gameObject.activeSelf)
-            return;
-
-        if (spawner == null)
-            return;
+            return false;
 
         respawnTimer -= deltaTime;
 
-        if (respawnTimer > 0f)
-            return;
-
-        Respawn(spawner.GetRespawnPosition());
+        return respawnTimer <= 0f;
     }
 
 #if UNITY_EDITOR
     private void OnDrawGizmosSelected()
     {
-        if (data == null)
-            return;
-
         Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, data.atkRange);
+        Gizmos.DrawWireSphere(transform.position, atkRange);
 
         Gizmos.color = Color.cyan;
         Gizmos.DrawWireSphere(transform.position, detectRange);

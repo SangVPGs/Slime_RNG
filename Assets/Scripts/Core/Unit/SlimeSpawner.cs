@@ -3,11 +3,12 @@ using UnityEngine;
 
 public class SlimeSpawner : MonoBehaviour
 {
+    public static SlimeSpawner Instance { get; private set; }
+
     [Header("Player")]
     [SerializeField] private Transform player;
 
     [Header("Slime")]
-    [SerializeField] private SlimeUnitData slimeData;
     [SerializeField] private SlimeUnit slimePrefab;
     [SerializeField] private int poolSize = 5;
 
@@ -32,7 +33,8 @@ public class SlimeSpawner : MonoBehaviour
     [SerializeField] private float deathRespawnDelay = 3f;
 
     private readonly List<SlimeUnit> slimePool = new();
-    private readonly Dictionary<SlimeUnit, float> nextForceRespawnTime = new();
+    private readonly Dictionary<SlimeUnit, float> nextOutOfRangeRespawnTime = new();
+    private readonly List<SlimeUnitData> currentEnemies = new();
 
     private float spawnTimer;
     private float outOfRangeTimer;
@@ -40,6 +42,7 @@ public class SlimeSpawner : MonoBehaviour
 
     private void Awake()
     {
+        SetupSingleton();
         FindPlayerIfNeeded();
         CreatePool();
     }
@@ -48,7 +51,13 @@ public class SlimeSpawner : MonoBehaviour
     {
         spawnTimer = initialSpawnDelay;
         outOfRangeTimer = outOfRangeCheckInterval;
-        canStartSpawning = true;
+        canStartSpawning = false;
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+            Instance = null;
     }
 
     private void Update()
@@ -59,6 +68,36 @@ public class SlimeSpawner : MonoBehaviour
         HandleDeathRespawn();
         HandleOutOfRangeRespawn();
         HandleSpawn();
+    }
+
+    private void SetupSingleton()
+    {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+    }
+
+    public void SetMapEnemies(IReadOnlyList<SlimeUnitData> enemies)
+    {
+        currentEnemies.Clear();
+
+        if (enemies != null)
+        {
+            foreach (SlimeUnitData enemy in enemies)
+            {
+                if (enemy != null)
+                    currentEnemies.Add(enemy);
+            }
+        }
+
+        canStartSpawning = currentEnemies.Count > 0;
+
+        if (canStartSpawning)
+            spawnTimer = initialSpawnDelay;
     }
 
     private void FindPlayerIfNeeded()
@@ -74,19 +113,25 @@ public class SlimeSpawner : MonoBehaviour
 
     private void CreatePool()
     {
-        if (slimeData == null || slimePrefab == null)
+        if (slimePrefab == null)
+        {
+            Debug.LogError("Slime prefab missing.");
             return;
+        }
 
         for (int i = 0; i < poolSize; i++)
         {
-            SlimeUnit slime = Instantiate(slimePrefab, transform.position, Quaternion.identity);
+            SlimeUnit slime = Instantiate(
+                slimePrefab,
+                transform.position,
+                Quaternion.identity
+            );
 
-            slime.Init(slimeData);
             slime.SetSpawner(this);
             slime.gameObject.SetActive(false);
 
             slimePool.Add(slime);
-            nextForceRespawnTime[slime] = 0f;
+            nextOutOfRangeRespawnTime[slime] = 0f;
         }
     }
 
@@ -110,23 +155,6 @@ public class SlimeSpawner : MonoBehaviour
         RespawnSlime(slime);
     }
 
-    private SlimeUnit GetInactiveSlime()
-    {
-        foreach (SlimeUnit slime in slimePool)
-        {
-            if (slime == null)
-                continue;
-
-            if (slime.IsWaitingRespawn)
-                continue;
-
-            if (!slime.gameObject.activeSelf)
-                return slime;
-        }
-
-        return null;
-    }
-
     private void HandleDeathRespawn()
     {
         foreach (SlimeUnit slime in slimePool)
@@ -134,7 +162,10 @@ public class SlimeSpawner : MonoBehaviour
             if (slime == null)
                 continue;
 
-            slime.TickRespawn(Time.deltaTime);
+            if (!slime.TickRespawn(Time.deltaTime))
+                continue;
+
+            RespawnSlime(slime);
         }
     }
 
@@ -152,19 +183,7 @@ public class SlimeSpawner : MonoBehaviour
 
         foreach (SlimeUnit slime in slimePool)
         {
-            if (slime == null)
-                continue;
-
-            if (!slime.gameObject.activeSelf)
-                continue;
-
-            if (slime.IsDead || slime.IsWaitingRespawn)
-                continue;
-
-            if (!nextForceRespawnTime.ContainsKey(slime))
-                nextForceRespawnTime[slime] = 0f;
-
-            if (Time.time < nextForceRespawnTime[slime])
+            if (!CanForceRespawn(slime))
                 continue;
 
             float zDistance = Mathf.Abs(slime.transform.position.z - player.position.z);
@@ -173,13 +192,64 @@ public class SlimeSpawner : MonoBehaviour
                 continue;
 
             RespawnSlime(slime);
+            nextOutOfRangeRespawnTime[slime] = Time.time + outOfRangeRespawnCooldown;
         }
+    }
+
+    private bool CanForceRespawn(SlimeUnit slime)
+    {
+        if (slime == null)
+            return false;
+
+        if (!slime.gameObject.activeSelf)
+            return false;
+
+        if (slime.IsDead || slime.IsWaitingRespawn)
+            return false;
+
+        if (!nextOutOfRangeRespawnTime.ContainsKey(slime))
+            nextOutOfRangeRespawnTime[slime] = 0f;
+
+        return Time.time >= nextOutOfRangeRespawnTime[slime];
+    }
+
+    private SlimeUnit GetInactiveSlime()
+    {
+        foreach (SlimeUnit slime in slimePool)
+        {
+            if (slime == null)
+                continue;
+
+            if (slime.IsWaitingRespawn)
+                continue;
+
+            if (!slime.gameObject.activeSelf)
+                return slime;
+        }
+
+        return null;
     }
 
     private void RespawnSlime(SlimeUnit slime)
     {
+        if (slime == null)
+            return;
+
+        SlimeUnitData data = GetRandomCurrentEnemyData();
+
+        if (data == null)
+            return;
+
+        slime.Init(data);
         slime.Respawn(GetRandomEdgePosition());
-        nextForceRespawnTime[slime] = Time.time + outOfRangeRespawnCooldown;
+    }
+
+    private SlimeUnitData GetRandomCurrentEnemyData()
+    {
+        if (currentEnemies.Count == 0)
+            return null;
+
+        return currentEnemies[Random.Range(0, currentEnemies.Count)];
     }
 
     private void FollowPlayerZ()
@@ -198,11 +268,6 @@ public class SlimeSpawner : MonoBehaviour
             return;
 
         slime.StartRespawn(deathRespawnDelay);
-    }
-
-    public Vector3 GetRespawnPosition()
-    {
-        return GetRandomEdgePosition();
     }
 
     private Vector3 GetRandomEdgePosition()
