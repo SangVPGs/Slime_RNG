@@ -19,7 +19,7 @@ public class PartySystem : MonoBehaviour
     [Header("Data")]
     [SerializeField] private PartyData data = new();
 
-    private bool autoEquip;
+    private bool autoEquip = true;
 
     public PartyData Data => data;
     public bool AutoEquip => autoEquip;
@@ -76,48 +76,89 @@ public class PartySystem : MonoBehaviour
     {
         autoEquip = !autoEquip;
 
-        Debug.Log($"Auto Equip toggled: {autoEquip}");
-
         PlayerPrefs.SetInt(AutoEquipKey, autoEquip ? 1 : 0);
         PlayerPrefs.Save();
 
         if (autoEquip)
             AutoEquipFromInventory();
         else
-            OnPartyChanged.Invoke();
+            OnPartyChanged?.Invoke();
     }
 
     public void AutoEquipFromInventory()
     {
-        if (inventorySystem == null)
+        if (inventorySystem == null || inventorySystem.Data == null)
             return;
 
-        if (inventorySystem.Data == null)
-            return;
-
-        List<PetUnitData> bestPets = inventorySystem.Data.Pets
-            .Where(entry => entry != null && entry.petData != null)
+        List<PetUnitData> availablePets = inventorySystem.Data.Pets
+            .Where(entry =>
+                entry != null &&
+                entry.petData != null &&
+                !entry.isInParty)
             .Select(entry => entry.petData)
             .OrderByDescending(pet => pet.combatPower)
-            .Take(data.MaxPartySize)
             .ToList();
 
-        data.ClearParty();
-
-        foreach (PetUnitData pet in bestPets)
+        foreach (PetUnitData pet in availablePets)
         {
-            bool added = data.AddPet(pet);
+            if (pet == null)
+                continue;
+
+            if (!data.IsFull)
+            {
+                bool added = data.AddPet(pet);
+
+                if (!added)
+                    continue;
+
+                inventorySystem.SetPetInPartyWithoutNotify(pet, true);
+                continue;
+            }
+
+            PetUnitData weakestPet = GetWeakestPartyPet();
+
+            if (weakestPet == null)
+                continue;
+
+            if (pet.combatPower <= weakestPet.combatPower)
+                continue;
+
+            bool removed = data.RemovePet(weakestPet);
+
+            if (!removed)
+                continue;
+
+            inventorySystem.SetPetInPartyWithoutNotify(weakestPet, false);
+
+            bool addedToParty = data.AddPet(pet);
+
+            if (addedToParty)
+                inventorySystem.SetPetInPartyWithoutNotify(pet, true);
         }
 
-        inventorySystem.SetAllPetsOutParty();
-
-        foreach (PetUnitData pet in bestPets)
-        {
-            bool setInParty = inventorySystem.SetPetInParty(pet, true);
-        }
+        inventorySystem.SaveAndNotify();
 
         Save();
         OnPartyChanged?.Invoke();
+    }
+
+    private PetUnitData GetWeakestPartyPet()
+    {
+        PetUnitData weakestPet = null;
+
+        foreach (PetUnitData pet in data.Pets)
+        {
+            if (pet == null)
+                continue;
+
+            if (weakestPet == null ||
+                pet.combatPower < weakestPet.combatPower)
+            {
+                weakestPet = pet;
+            }
+        }
+
+        return weakestPet;
     }
 
     private void Save()

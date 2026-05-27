@@ -10,14 +10,14 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f1817479c0d6a5c4b8c6419d9c9fe581, type: 3}
-  m_Name: Fire_Slime
+  m_Name: Electro_Slime
   m_EditorClassIdentifier: 
-  id: S001
-  unitName: Fire Slime
-  model: {fileID: 919132149155446097, guid: a740e81291a5c7d4fab867b048e98f03, type: 3}
-  hp: 2000
+  id: S002
+  unitName: Electro Slime
+  model: {fileID: 919132149155446097, guid: 3d9895fa7d7d01f449fd85cdcd8282c4, type: 3}
+  hp: 1800
   atk: 100
-  atkRange: 3
-  atkSpeed: 1
-  speed: 5
-  goldDrop: 10
+  atkRange: 5
+  atkSpeed: 1.5
+  speed: 10
+  goldDrop: 0

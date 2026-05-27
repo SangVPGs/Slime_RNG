@@ -22,16 +22,20 @@ public class GachaController : MonoBehaviour
 
     private Coroutine autoRollCoroutine;
 
-    private bool isAutoRolling;
     private bool isRolling;
+    private bool isAutoRolling;
+    private bool stopAutoAfterCurrentRoll;
     private bool startAutoAfterCurrentRoll;
     private bool useMiniResult;
 
     public void Roll()
     {
-        if (isAutoRolling)
+        if (!CanRoll())
+            return;
+
+        if (isAutoRolling || startAutoAfterCurrentRoll)
         {
-            ShowFullPanel();
+            ShowFullPanel(true);
             return;
         }
 
@@ -39,69 +43,113 @@ public class GachaController : MonoBehaviour
             return;
 
         useMiniResult = false;
-        ShowFullPanel();
+        ShowFullPanel(false);
 
         StartCoroutine(RollRoutine(false));
     }
 
     public void AutoRoll()
     {
-        if (isAutoRolling)
+        if (!CanRoll())
+            return;
+
+        if (isAutoRolling || startAutoAfterCurrentRoll)
         {
-            StopAutoRoll();
+            RequestStopAutoRoll();
             return;
         }
 
         if (isRolling)
         {
             startAutoAfterCurrentRoll = true;
+            stopAutoAfterCurrentRoll = false;
             useMiniResult = false;
 
-            ShowFullPanel();
-
-            if (gachaUI != null)
-                gachaUI.SetAutoRollVisual(true);
+            ShowFullPanel(true);
+            gachaUI?.SetAutoRollVisual(true);
 
             return;
         }
 
-        StartAutoRoll();
+        StartAutoRoll(true);
     }
 
     public void HideButton()
     {
-        if (isAutoRolling)
+        bool autoMode = isAutoRolling || startAutoAfterCurrentRoll;
+
+        if (!autoMode)
         {
-            useMiniResult = true;
-            ShowMiniPanel();
+            if (!isRolling)
+                HideAllPanels();
+
+            return;
         }
-        else
-        {
-            HideAllPanels();
-        }
+
+        useMiniResult = true;
+        ShowMiniPanel();
     }
 
-    private void StartAutoRoll()
+    private bool CanRoll()
+    {
+        if (gachaSystem == null)
+        {
+            Debug.LogError("GachaSystem is missing.");
+            return false;
+        }
+
+        if (inventorySystem == null)
+        {
+            Debug.LogError("InventorySystem is missing.");
+            return false;
+        }
+
+        return true;
+    }
+
+    private void StartAutoRoll(bool showFullPanel)
     {
         if (isAutoRolling)
             return;
 
         isAutoRolling = true;
         startAutoAfterCurrentRoll = false;
-        useMiniResult = false;
+        stopAutoAfterCurrentRoll = false;
 
-        ShowFullPanel();
+        if (showFullPanel)
+        {
+            useMiniResult = false;
+            ShowFullPanel(true);
+        }
+        else
+        {
+            useMiniResult = true;
+            ShowMiniPanel();
+        }
 
-        if (gachaUI != null)
-            gachaUI.SetAutoRollVisual(true);
+        gachaUI?.SetAutoRollVisual(true);
 
         autoRollCoroutine = StartCoroutine(AutoRollRoutine());
     }
 
-    private void StopAutoRoll()
+    private void RequestStopAutoRoll()
     {
         isAutoRolling = false;
         startAutoAfterCurrentRoll = false;
+        stopAutoAfterCurrentRoll = true;
+
+        gachaUI?.SetAutoRollVisual(false);
+        gachaUI?.SetHideButtonVisible(false);
+
+        if (!isRolling)
+            StopAutoRollNow();
+    }
+
+    private void StopAutoRollNow()
+    {
+        isAutoRolling = false;
+        startAutoAfterCurrentRoll = false;
+        stopAutoAfterCurrentRoll = false;
         useMiniResult = false;
 
         if (autoRollCoroutine != null)
@@ -110,8 +158,8 @@ public class GachaController : MonoBehaviour
             autoRollCoroutine = null;
         }
 
-        if (gachaUI != null)
-            gachaUI.SetAutoRollVisual(false);
+        gachaUI?.SetAutoRollVisual(false);
+        gachaUI?.SetHideButtonVisible(false);
 
         HideAllPanels();
     }
@@ -141,6 +189,10 @@ public class GachaController : MonoBehaviour
         if (finalPet == null)
         {
             isRolling = false;
+
+            if (!isAutoRolling)
+                HideAllPanels();
+
             yield break;
         }
 
@@ -152,7 +204,6 @@ public class GachaController : MonoBehaviour
             ShowRollingPet(displayPet);
 
             timer += switchInterval;
-
             yield return new WaitForSeconds(switchInterval);
         }
 
@@ -166,14 +217,23 @@ public class GachaController : MonoBehaviour
 
         yield return new WaitForSeconds(resultWaitTime);
 
-        if (startAutoAfterCurrentRoll)
+        if (stopAutoAfterCurrentRoll)
         {
-            startAutoAfterCurrentRoll = false;
-            StartAutoRoll();
+            StopAutoRollNow();
             yield break;
         }
 
-        if (!fromAutoRoll && !isAutoRolling)
+        if (startAutoAfterCurrentRoll)
+        {
+            bool shouldUseMini = useMiniResult;
+
+            startAutoAfterCurrentRoll = false;
+            StartAutoRoll(!shouldUseMini);
+
+            yield break;
+        }
+
+        if (!isAutoRolling && !fromAutoRoll)
             HideAllPanels();
     }
 
@@ -193,41 +253,37 @@ public class GachaController : MonoBehaviour
             gachaUI?.ShowFinalPet(pet);
     }
 
-    private void ShowFullPanel()
+    private void ShowFullPanel(bool showHideButton)
     {
         useMiniResult = false;
 
-        if (UIManager.Instance == null)
-            return;
-
-        UIManager.Instance.Show(gachaUIId);
-        UIManager.Instance.Hide(gachaMiniUIId);
+        UIManager.Instance?.Show(gachaUIId);
+        UIManager.Instance?.Hide(gachaMiniUIId);
 
         gachaMiniUI?.ClearResult();
+        gachaUI?.SetHideButtonVisible(showHideButton);
     }
 
     private void ShowMiniPanel()
     {
         useMiniResult = true;
 
-        if (UIManager.Instance == null)
-            return;
-
-        UIManager.Instance.Hide(gachaUIId);
-        UIManager.Instance.Show(gachaMiniUIId);
+        UIManager.Instance?.Hide(gachaUIId);
+        UIManager.Instance?.Show(gachaMiniUIId);
 
         gachaUI?.ClearResult();
+        gachaUI?.SetHideButtonVisible(false);
     }
 
     private void HideAllPanels()
     {
-        if (UIManager.Instance != null)
-        {
-            UIManager.Instance.Hide(gachaUIId);
-            UIManager.Instance.Hide(gachaMiniUIId);
-        }
+        UIManager.Instance?.Hide(gachaUIId);
+        UIManager.Instance?.Hide(gachaMiniUIId);
 
         gachaUI?.ClearResult();
         gachaMiniUI?.ClearResult();
+
+        gachaUI?.SetAutoRollVisual(false);
+        gachaUI?.SetHideButtonVisible(false);
     }
 }

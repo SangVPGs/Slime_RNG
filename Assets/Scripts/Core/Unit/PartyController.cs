@@ -47,28 +47,24 @@ public class PartyController : MonoBehaviour
 
     private void FixedUpdate()
     {
-        if (IsPartyTooFarFromPlayer())
-        {
-            currentSlimeTarget = null;
-
-            FollowPlayer();
-
-            return;
-        }
-
-        if (HasValidTarget())
-        {
-            AttackTarget();
-
-            return;
-        }
-
         ScanTargetByInterval();
 
         if (HasValidTarget())
-            AttackTarget();
-        else
-            FollowPlayer();
+        {
+            if (HasAnyPetInAttackRange(currentSlimeTarget))
+            {
+                AttackTarget();
+                return;
+            }
+
+            if (!IsPartyTooFarFromPlayer())
+            {
+                AttackTarget();
+                return;
+            }
+        }
+
+        FollowPlayer();
     }
 
     public void SyncParty()
@@ -88,8 +84,7 @@ public class PartyController : MonoBehaviour
         currentSlimeTarget = null;
     }
 
-    private void RemoveMissingPets(
-        IReadOnlyList<PetUnitData> partyPets)
+    private void RemoveMissingPets(IReadOnlyList<PetUnitData> partyPets)
     {
         List<PetUnitData> removeList = new();
 
@@ -110,8 +105,7 @@ public class PartyController : MonoBehaviour
         }
     }
 
-    private void SpawnNewPets(
-        IReadOnlyList<PetUnitData> partyPets)
+    private void SpawnNewPets(IReadOnlyList<PetUnitData> partyPets)
     {
         for (int i = 0; i < partyPets.Count; i++)
         {
@@ -123,8 +117,7 @@ public class PartyController : MonoBehaviour
             if (partyMembers.ContainsKey(petData))
                 continue;
 
-            Vector3 spawnPosition =
-                GetFollowPosition(i);
+            Vector3 spawnPosition = GetFollowPosition(i);
 
             PetUnit petUnit = Instantiate(
                 petPrefab,
@@ -145,14 +138,10 @@ public class PartyController : MonoBehaviour
 
         nextScanTime = Time.time + scanInterval;
 
-        if (currentSlimeTarget != null &&
-            !currentSlimeTarget.IsDead)
-        {
+        if (HasValidTarget())
             return;
-        }
 
-        currentSlimeTarget =
-            FindNearestAliveSlimeAroundPlayer();
+        currentSlimeTarget = FindNearestAliveSlimeAroundPlayer();
     }
 
     private SlimeUnit FindNearestAliveSlimeAroundPlayer()
@@ -164,25 +153,19 @@ public class PartyController : MonoBehaviour
         );
 
         SlimeUnit nearestSlime = null;
-
         float nearestSqrDistance = Mathf.Infinity;
 
         foreach (Collider hit in hits)
         {
-            SlimeUnit slime =
-                hit.GetComponentInParent<SlimeUnit>();
+            SlimeUnit slime = hit.GetComponentInParent<SlimeUnit>();
 
             if (slime == null || slime.IsDead)
                 continue;
 
-            Vector3 offset =
-                slime.transform.position -
-                transform.position;
-
+            Vector3 offset = slime.transform.position - transform.position;
             offset.y = 0f;
 
-            float sqrDistance =
-                offset.sqrMagnitude;
+            float sqrDistance = offset.sqrMagnitude;
 
             if (sqrDistance < nearestSqrDistance)
             {
@@ -197,7 +180,19 @@ public class PartyController : MonoBehaviour
     private bool HasValidTarget()
     {
         return currentSlimeTarget != null &&
-               !currentSlimeTarget.IsDead;
+               !currentSlimeTarget.IsDead &&
+               IsTargetInsideDetectRange(currentSlimeTarget);
+    }
+
+    private bool IsTargetInsideDetectRange(SlimeUnit slime)
+    {
+        if (slime == null)
+            return false;
+
+        Vector3 offset = slime.transform.position - transform.position;
+        offset.y = 0f;
+
+        return offset.sqrMagnitude <= detectRange * detectRange;
     }
 
     private void AttackTarget()
@@ -212,16 +207,13 @@ public class PartyController : MonoBehaviour
             if (pet == null || pet.IsDead)
                 continue;
 
-            if (IsSlimeInAttackRange(
-                    pet,
-                    currentSlimeTarget))
+            if (IsSlimeInAttackRange(pet, currentSlimeTarget))
             {
                 pet.Attack(currentSlimeTarget);
             }
             else
             {
-                float petStopDistance =
-                    pet.Data.atkRange * 0.9f;
+                float petStopDistance = pet.Data.atkRange * 0.9f;
 
                 pet.MoveTo(
                     currentSlimeTarget.transform.position,
@@ -231,23 +223,36 @@ public class PartyController : MonoBehaviour
         }
     }
 
-    private bool IsSlimeInAttackRange(
-        PetUnit pet,
-        SlimeUnit slime)
+    private bool IsSlimeInAttackRange(PetUnit pet, SlimeUnit slime)
     {
         if (pet == null || slime == null)
             return false;
 
-        Vector3 offset =
-            slime.transform.position -
-            pet.transform.position;
-
+        Vector3 offset = slime.transform.position - pet.transform.position;
         offset.y = 0f;
 
         float range = pet.Data.atkRange;
 
-        return offset.sqrMagnitude <=
-               range * range;
+        return offset.sqrMagnitude <= range * range;
+    }
+
+    private bool HasAnyPetInAttackRange(SlimeUnit slime)
+    {
+        if (slime == null)
+            return false;
+
+        foreach (var pair in partyMembers)
+        {
+            PetUnit pet = pair.Value;
+
+            if (pet == null || pet.IsDead)
+                continue;
+
+            if (IsSlimeInAttackRange(pet, slime))
+                return true;
+        }
+
+        return false;
     }
 
     private bool IsPartyTooFarFromPlayer()
@@ -259,18 +264,11 @@ public class PartyController : MonoBehaviour
             if (pet == null || pet.IsDead)
                 continue;
 
-            Vector3 offset =
-                pet.transform.position -
-                transform.position;
-
+            Vector3 offset = pet.transform.position - transform.position;
             offset.y = 0f;
 
-            if (offset.sqrMagnitude >
-                maxDistanceFromPlayer *
-                maxDistanceFromPlayer)
-            {
+            if (offset.sqrMagnitude > maxDistanceFromPlayer * maxDistanceFromPlayer)
                 return true;
-            }
         }
 
         return false;
@@ -287,8 +285,7 @@ public class PartyController : MonoBehaviour
             if (pet == null || pet.IsDead)
                 continue;
 
-            Vector3 followPosition =
-                GetFollowPosition(index);
+            Vector3 followPosition = GetFollowPosition(index);
 
             pet.MoveTo(
                 followPosition,
@@ -302,8 +299,7 @@ public class PartyController : MonoBehaviour
     private Vector3 GetFollowPosition(int index)
     {
         return transform.position -
-               transform.forward *
-               (followDistance + spacing * index);
+               transform.forward * (followDistance + spacing * index);
     }
 
     public void ClearParty()
@@ -315,7 +311,6 @@ public class PartyController : MonoBehaviour
         }
 
         partyMembers.Clear();
-
         currentSlimeTarget = null;
     }
 
@@ -323,18 +318,10 @@ public class PartyController : MonoBehaviour
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.blue;
-
-        Gizmos.DrawWireSphere(
-            transform.position,
-            detectRange
-        );
+        Gizmos.DrawWireSphere(transform.position, detectRange);
 
         Gizmos.color = Color.yellow;
-
-        Gizmos.DrawWireSphere(
-            transform.position,
-            maxDistanceFromPlayer
-        );
+        Gizmos.DrawWireSphere(transform.position, maxDistanceFromPlayer);
     }
 #endif
 }

@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.AI;
 
 public class SlimeUnit : Unit
 {
@@ -17,12 +18,26 @@ public class SlimeUnit : Unit
     [SerializeField] private float stopDistanceFromPlayer = 2f;
 
     private SlimeSpawner spawner;
+
     private bool waitingRespawn;
     private float respawnTimer;
     private float nextScanTime;
 
+    private NavMeshAgent[] navMeshAgents;
+    private NavMeshObstacle[] navMeshObstacles;
+    private Animator[] animators;
+
     public bool IsWaitingRespawn => waitingRespawn;
     public SlimeUnitData SlimeData => data as SlimeUnitData;
+
+    protected override void Awake()
+    {
+        base.Awake();
+
+        CacheUnusedComponents();
+        DisableUnusedNavigation();
+        DisableRootMotion();
+    }
 
     private void FixedUpdate()
     {
@@ -52,6 +67,49 @@ public class SlimeUnit : Unit
         nextScanTime = 0f;
         waitingRespawn = false;
         respawnTimer = 0f;
+
+        DisableUnusedNavigation();
+        DisableRootMotion();
+    }
+
+    private void CacheUnusedComponents()
+    {
+        navMeshAgents = GetComponentsInChildren<NavMeshAgent>(true);
+        navMeshObstacles = GetComponentsInChildren<NavMeshObstacle>(true);
+        animators = GetComponentsInChildren<Animator>(true);
+    }
+
+    private void DisableUnusedNavigation()
+    {
+        if (navMeshAgents != null)
+        {
+            foreach (NavMeshAgent agent in navMeshAgents)
+            {
+                if (agent != null)
+                    agent.enabled = false;
+            }
+        }
+
+        if (navMeshObstacles != null)
+        {
+            foreach (NavMeshObstacle obstacle in navMeshObstacles)
+            {
+                if (obstacle != null)
+                    obstacle.enabled = false;
+            }
+        }
+    }
+
+    private void DisableRootMotion()
+    {
+        if (animators == null)
+            return;
+
+        foreach (Animator animator in animators)
+        {
+            if (animator != null)
+                animator.applyRootMotion = false;
+        }
     }
 
     public void Respawn(Vector3 position)
@@ -59,12 +117,31 @@ public class SlimeUnit : Unit
         waitingRespawn = false;
         respawnTimer = 0f;
 
+        DisableUnusedNavigation();
+        DisableRootMotion();
+
         transform.position = position;
-        visualRoot.localScale = Vector3.one;
-        gameObject.SetActive(true);
+
+        if (rb != null)
+        {
+            rb.velocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+            rb.position = position;
+        }
+
+        Physics.SyncTransforms();
+
+        if (visualRoot != null)
+        {
+            visualRoot.localPosition = Vector3.zero;
+            visualRoot.localRotation = Quaternion.identity;
+            visualRoot.localScale = Vector3.one;
+        }
 
         currentPetTarget = null;
         nextScanTime = 0f;
+
+        gameObject.SetActive(true);
 
         Revive();
     }
@@ -98,6 +175,9 @@ public class SlimeUnit : Unit
 
     private PetUnit FindFirstAlivePetInDetectRange()
     {
+        if (data == null)
+            return null;
+
         float range = Mathf.Max(detectRange, data.atkRange);
 
         Collider[] hits = Physics.OverlapSphere(
@@ -173,8 +253,13 @@ public class SlimeUnit : Unit
 
     public override void Die()
     {
+        if (IsDead)
+            return;
+
         base.Die();
-        GameManager.Instance.AddGold(SlimeData.goldDrop);
+
+        if (GameManager.Instance != null && SlimeData != null)
+            GameManager.Instance.AddGold(SlimeData.goldDrop);
     }
 
     public void OnDeathAnimationFinished()
@@ -210,12 +295,12 @@ public class SlimeUnit : Unit
         if (gameObject.activeSelf)
             return;
 
+        if (spawner == null)
+            return;
+
         respawnTimer -= deltaTime;
 
         if (respawnTimer > 0f)
-            return;
-
-        if (spawner == null)
             return;
 
         Respawn(spawner.GetRespawnPosition());

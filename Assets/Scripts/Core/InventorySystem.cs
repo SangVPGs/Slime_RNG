@@ -11,6 +11,9 @@ public class InventorySystem : MonoBehaviour
     [Header("Database")]
     [SerializeField] private PetDatabase petDatabase;
 
+    [Header("Party")]
+    [SerializeField] private PartySystem partySystem;
+
     [Header("Data")]
     [SerializeField] private InventoryData data = new();
 
@@ -33,7 +36,15 @@ public class InventorySystem : MonoBehaviour
             return false;
 
         Save();
-        OnInventoryChanged?.Invoke();
+
+        if (partySystem != null && partySystem.AutoEquip)
+        {
+            partySystem.AutoEquipFromInventory();
+        }
+        else
+        {
+            OnInventoryChanged?.Invoke();
+        }
 
         return true;
     }
@@ -54,24 +65,37 @@ public class InventorySystem : MonoBehaviour
         return true;
     }
 
-    public void SetAllPetsOutParty()
+    public bool SetPetInPartyWithoutNotify(PetUnitData pet, bool isInParty)
     {
-        data.SetAllPetsOutParty();
+        if (pet == null)
+            return false;
 
-        Save();
-
-        OnInventoryChanged?.Invoke();
+        return data.SetPetInParty(pet, isInParty);
     }
 
+    public void SaveAndNotify()
+    {
+        Save();
+        OnInventoryChanged?.Invoke();
+    }
 
     public bool IsPetInParty(PetUnitData pet)
     {
         return data.IsPetInParty(pet);
     }
 
+    public void SetAllPetsOutParty()
+    {
+        data.SetAllPetsOutParty();
+
+        Save();
+        OnInventoryChanged?.Invoke();
+    }
+
     private void Save()
     {
         string json = JsonUtility.ToJson(data);
+
         PlayerPrefs.SetString(SaveKey, json);
         PlayerPrefs.Save();
     }
@@ -87,6 +111,7 @@ public class InventorySystem : MonoBehaviour
             return;
 
         JsonUtility.FromJsonOverwrite(json, data);
+
         data.SetDatabase(petDatabase);
     }
 
@@ -135,8 +160,14 @@ public class InventorySystem : MonoBehaviour
 
         public bool AddPet(PetUnitData pet)
         {
-            if (pet == null || string.IsNullOrEmpty(pet.Id))
+            if (pet == null)
                 return false;
+
+            if (string.IsNullOrEmpty(pet.Id))
+            {
+                Debug.LogError($"{pet.name} missing pet Id.");
+                return false;
+            }
 
             foreach (PetInventoryEntry entry in pets)
             {
@@ -205,9 +236,8 @@ public class InventorySystem : MonoBehaviour
     public class PetInventoryEntry
     {
         public string petId;
+        public bool isInParty;
 
         [NonSerialized] public PetUnitData petData;
-
-        public bool isInParty;
     }
 }

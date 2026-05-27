@@ -7,6 +7,9 @@ public class GachaUI : MonoBehaviour
     [Header("Result")]
     [SerializeField] private GachaResultView resultView;
 
+    [Header("Buttons")]
+    [SerializeField] private GameObject hideButton;
+
     [Header("Auto Roll Button")]
     [SerializeField] private Image autoRollButtonImage;
     [SerializeField] private TMP_Text autoRollButtonText;
@@ -42,5 +45,11 @@ public class GachaUI : MonoBehaviour
 
         if (autoRollButtonText != null)
             autoRollButtonText.color = isRolling ? activeTextColor : normalTextColor;
+    }
+
+    public void SetHideButtonVisible(bool visible)
+    {
+        if (hideButton != null)
+            hideButton.SetActive(visible);
     }
 }

@@ -6,24 +6,85 @@ public class GachaSystem : MonoBehaviour
     [Header("Database")]
     [SerializeField] private PetDatabase petDatabase;
 
-    [Header("Rates")]
-    [SerializeField] private float commonRate = 70f;
-    [SerializeField] private float uncommonRate = 20f;
-    [SerializeField] private float rareRate = 7f;
-    [SerializeField] private float epicRate = 2f;
-    [SerializeField] private float legendaryRate = 1f;
+    [Header("Real Roll Rarity Weights")]
+    [SerializeField] private List<RarityWeightConfig> rarityWeights = new();
 
-    public IReadOnlyList<PetUnitData> Pets => petDatabase.Pets;
+    [Header("Display Roll Rarity Weights")]
+    [SerializeField] private List<RarityWeightConfig> displayRarityWeights = new();
+
+    public IReadOnlyList<PetUnitData> Pets => petDatabase != null ? petDatabase.Pets : null;
 
     public PetUnitData RollPet()
     {
-        if (petDatabase == null || petDatabase.Pets.Count == 0)
-        {
-            Debug.LogError("PetDatabase is empty.");
+        if (!HasValidDatabase())
             return null;
+
+        PetRarity rarity = RollRarityFromWeights(rarityWeights);
+        return RollPetByRarity(rarity);
+    }
+
+    public PetUnitData GetRandomDisplayPet()
+    {
+        if (!HasValidDatabase())
+            return null;
+
+        PetRarity rarity = RollRarityFromWeights(displayRarityWeights);
+
+        PetUnitData pet = RollPetByRarity(rarity);
+
+        if (pet != null)
+            return pet;
+
+        return GetRandomPetFromDatabase();
+    }
+
+    private PetRarity RollRarityFromWeights(List<RarityWeightConfig> weights)
+    {
+        if (weights == null || weights.Count == 0)
+        {
+            Debug.LogWarning("Rarity weight config is empty.");
+            return default;
         }
 
-        PetRarity rarity = RollRarity();
+        float totalWeight = 0f;
+
+        foreach (RarityWeightConfig config in weights)
+        {
+            if (config == null)
+                continue;
+
+            totalWeight += config.FinalWeight;
+        }
+
+        if (totalWeight <= 0f)
+        {
+            Debug.LogError("Total rarity weight must be greater than 0.");
+            return default;
+        }
+
+        float value = Random.Range(0f, totalWeight);
+
+        foreach (RarityWeightConfig config in weights)
+        {
+            if (config == null)
+                continue;
+
+            float weight = config.FinalWeight;
+
+            if (weight <= 0f)
+                continue;
+
+            if (value < weight)
+                return config.rarity;
+
+            value -= weight;
+        }
+
+        return weights[weights.Count - 1].rarity;
+    }
+
+    private PetUnitData RollPetByRarity(PetRarity rarity)
+    {
         List<PetUnitData> candidates = GetPetsByRarity(rarity);
 
         if (candidates.Count == 0)
@@ -32,41 +93,9 @@ public class GachaSystem : MonoBehaviour
             return null;
         }
 
-        return candidates[Random.Range(0, candidates.Count)];
-    }
-
-    public PetUnitData GetRandomDisplayPet()
-    {
-        if (petDatabase == null || petDatabase.Pets.Count == 0)
-            return null;
-
-        return petDatabase.Pets[Random.Range(0, petDatabase.Pets.Count)];
-    }
-
-    private PetRarity RollRarity()
-    {
-        float totalRate = commonRate + uncommonRate + rareRate + epicRate + legendaryRate;
-        float value = Random.Range(0f, totalRate);
-
-        if (value <= commonRate)
-            return PetRarity.Common;
-
-        value -= commonRate;
-
-        if (value <= uncommonRate)
-            return PetRarity.Uncommon;
-
-        value -= uncommonRate;
-
-        if (value <= rareRate)
-            return PetRarity.Rare;
-
-        value -= rareRate;
-
-        if (value <= epicRate)
-            return PetRarity.Epic;
-
-        return PetRarity.Legendary;
+        return candidates[
+            Random.Range(0, candidates.Count)
+        ];
     }
 
     private List<PetUnitData> GetPetsByRarity(PetRarity rarity)
@@ -80,5 +109,26 @@ public class GachaSystem : MonoBehaviour
         }
 
         return result;
+    }
+
+    private PetUnitData GetRandomPetFromDatabase()
+    {
+        if (!HasValidDatabase())
+            return null;
+
+        return petDatabase.Pets[
+            Random.Range(0, petDatabase.Pets.Count)
+        ];
+    }
+
+    private bool HasValidDatabase()
+    {
+        if (petDatabase == null || petDatabase.Pets == null || petDatabase.Pets.Count == 0)
+        {
+            Debug.LogError("PetDatabase is empty.");
+            return false;
+        }
+
+        return true;
     }
 }

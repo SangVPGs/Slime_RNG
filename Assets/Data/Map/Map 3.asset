@@ -16,3 +16,5 @@ MonoBehaviour:
   mapPrefab: {fileID: 6807517083651868280, guid: c31bf8241a076ef4b9422d9359f2f6db,
     type: 3}
   unlockCost: 1500
+  enemies:
+  - {fileID: 11400000, guid: a4e95ef74792c544ca7dca15b5bcb618, type: 2}
