@@ -148,8 +148,6 @@ public abstract class Unit : MonoBehaviour
         RecalculateStats();
         currentHp = maxHp;
 
-        SaveLevel();
-
         return true;
     }
 
@@ -167,8 +165,6 @@ public abstract class Unit : MonoBehaviour
 
         RecalculateStats();
         currentHp = maxHp;
-
-        SaveLevel();
 
         return true;
     }

@@ -17,9 +17,9 @@ public class SlimeUnit : Unit
     [Header("Movement")]
     [SerializeField] private float stopDistanceFromPlayer = 2f;
 
-    [Header("Slime Level Growth")]
-    [SerializeField] private int hpPerLevel = 10;
-    [SerializeField] private int atkPerLevel = 2;
+    [Header("Slime Growth Per Level")]
+    [SerializeField] private int hpPerLevel = 500;
+    [SerializeField] private int atkPerLevel = 50;
 
     private SlimeSpawner spawner;
 
@@ -141,8 +141,15 @@ public class SlimeUnit : Unit
         }
     }
 
-    public void Respawn(Vector3 position)
+    public void Spawn(SlimeUnitData slimeData, int mapLevel, Vector3 position)
     {
+        if (slimeData == null)
+            return;
+
+        Init(slimeData);
+
+        SetLevel(Mathf.Max(1, mapLevel));
+
         waitingRespawn = false;
         respawnTimer = 0f;
 

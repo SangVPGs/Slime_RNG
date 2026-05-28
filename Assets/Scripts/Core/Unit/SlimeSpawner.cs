@@ -1,6 +1,19 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 
+
+public readonly struct SlimeSpawnContext
+{
+    public readonly int MapLevel;
+    public readonly IReadOnlyList<SlimeUnitData> Enemies;
+
+    public SlimeSpawnContext(int mapLevel, IReadOnlyList<SlimeUnitData> enemies)
+    {
+        MapLevel = mapLevel;
+        Enemies = enemies;
+    }
+}
+
 public class SlimeSpawner : MonoBehaviour
 {
     public static SlimeSpawner Instance { get; private set; }
@@ -36,6 +49,7 @@ public class SlimeSpawner : MonoBehaviour
     private readonly Dictionary<SlimeUnit, float> nextOutOfRangeRespawnTime = new();
     private readonly List<SlimeUnitData> currentEnemies = new();
 
+    private SlimeSpawnContext currentContext;
     private float spawnTimer;
     private float outOfRangeTimer;
     private bool canStartSpawning;
@@ -81,13 +95,15 @@ public class SlimeSpawner : MonoBehaviour
         Instance = this;
     }
 
-    public void SetMapEnemies(IReadOnlyList<SlimeUnitData> enemies)
+    public void SetContext(SlimeSpawnContext context)
     {
+        currentContext = context;
+
         currentEnemies.Clear();
 
-        if (enemies != null)
+        if (context.Enemies != null)
         {
-            foreach (SlimeUnitData enemy in enemies)
+            foreach (SlimeUnitData enemy in context.Enemies)
             {
                 if (enemy != null)
                     currentEnemies.Add(enemy);
@@ -240,8 +256,11 @@ public class SlimeSpawner : MonoBehaviour
         if (data == null)
             return;
 
-        slime.Init(data);
-        slime.Respawn(GetRandomEdgePosition());
+        slime.Spawn(
+            data,
+            currentContext.MapLevel,
+            GetRandomEdgePosition()
+        );
     }
 
     private SlimeUnitData GetRandomCurrentEnemyData()

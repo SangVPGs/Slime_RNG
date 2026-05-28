@@ -18,6 +18,11 @@ public class PetUnitData : UnitData
     public PetRarity rarity;
     public Sprite icon;
 
+    [Header("Pet Growth Scale")]
+    public float hpGrowthMultiplier = 1.12f;
+    public float atkGrowthMultiplier = 1.08f;
+    public float healGrowthMultiplier = 1.05f;
+
 #if UNITY_EDITOR
     private void OnValidate()
     {
