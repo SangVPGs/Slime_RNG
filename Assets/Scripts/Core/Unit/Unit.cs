@@ -68,10 +68,8 @@ public abstract class Unit : MonoBehaviour
     public int MaxHp => maxHp;
     public int CurrentHp => currentHp;
     public int Atk => atk;
-
     public float AtkRange => atkRange;
-    public float AtkSpeed => atkSpeed;
-    public float Speed => speed;
+
 
     public float HpPercent => maxHp > 0 ? (float)currentHp / maxHp : 0f;
 
@@ -101,6 +99,8 @@ public abstract class Unit : MonoBehaviour
         Init(unitData, null);
     }
 
+    protected virtual bool UseSavedLevel => true;
+
     public virtual void Init(UnitData unitData, string instanceId)
     {
         if (unitData == null)
@@ -113,7 +113,11 @@ public abstract class Unit : MonoBehaviour
 
         EnsureInstanceId();
 
-        LoadLevel();
+        if (UseSavedLevel)
+            LoadLevel();
+        else
+            currentLevel = Mathf.Clamp(data.defaultLevel, 1, data.maxLevel);
+
         RecalculateStats();
 
         currentHp = maxHp;

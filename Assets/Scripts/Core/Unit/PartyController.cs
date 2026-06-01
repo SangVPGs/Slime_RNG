@@ -5,6 +5,7 @@ public class PartyController : MonoBehaviour
 {
     [Header("Data")]
     [SerializeField] private PartySystem partySystem;
+    [SerializeField] private InventorySystem inventorySystem;
 
     [Header("Pet Prefab")]
     [SerializeField] private PetUnit petPrefab;
@@ -31,12 +32,18 @@ public class PartyController : MonoBehaviour
     {
         if (partySystem != null)
             partySystem.OnPartyChanged += SyncParty;
+
+        if (inventorySystem != null)
+            inventorySystem.OnInventoryChanged += RefreshExistingPetsFromInventory;
     }
 
     private void OnDisable()
     {
         if (partySystem != null)
             partySystem.OnPartyChanged -= SyncParty;
+
+        if (inventorySystem != null)
+            inventorySystem.OnInventoryChanged -= RefreshExistingPetsFromInventory;
     }
 
     private void Start()
@@ -79,6 +86,7 @@ public class PartyController : MonoBehaviour
 
         RemoveMissingPets(partyPets);
         SpawnNewPets(partyPets);
+        RefreshExistingPets(partyPets);
 
         currentSlimeTarget = null;
     }
@@ -138,10 +146,34 @@ public class PartyController : MonoBehaviour
                 Quaternion.identity
             );
 
-            petUnit.Init(entry.petData, entry.petId);
-            petUnit.SetLevel(entry.level);
+            petUnit.InitFromInventoryEntry(entry);
 
             partyMembers.Add(entry.petId, petUnit);
+        }
+    }
+
+    private void RefreshExistingPetsFromInventory()
+    {
+        if (partySystem == null || partySystem.Data == null)
+            return;
+
+        RefreshExistingPets(partySystem.Data.Pets);
+    }
+
+    private void RefreshExistingPets(IReadOnlyList<InventorySystem.PetInventoryEntry> partyPets)
+    {
+        foreach (InventorySystem.PetInventoryEntry entry in partyPets)
+        {
+            if (entry == null || string.IsNullOrEmpty(entry.petId))
+                continue;
+
+            if (!partyMembers.TryGetValue(entry.petId, out PetUnit petUnit))
+                continue;
+
+            if (petUnit == null)
+                continue;
+
+            petUnit.ApplyInventoryProgress(entry);
         }
     }
 

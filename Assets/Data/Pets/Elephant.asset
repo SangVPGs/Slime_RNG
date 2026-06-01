@@ -15,13 +15,16 @@ MonoBehaviour:
   id: P009
   unitName: Elephant
   model: {fileID: 919132149155446097, guid: 020695f856c718a49872643c63f93b4e, type: 3}
-  baseHp: 1000
-  baseAtk: 10
+  baseHp: 10000
+  baseAtk: 500
   baseAtkRange: 1.5
   baseAtkSpeed: 1
   baseSpeed: 3.5
   defaultLevel: 1
   maxLevel: 999
-  baseHeal: 0
+  baseHeal: 100
   rarity: 4
   icon: {fileID: 21300000, guid: 81ba28ad7d8c54c43b604f9c52a762a7, type: 3}
+  hpGrowthMultiplier: 1.12
+  atkGrowthMultiplier: 1.08
+  healGrowthMultiplier: 1.05

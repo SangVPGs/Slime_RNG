@@ -137,8 +137,8 @@ public class PartySystem : MonoBehaviour
             if (weakestPet == null)
                 continue;
 
-            int newPetPower = PetUnit.CalculateCombatPower(entry.petData, entry.level);
-            int weakestPower = PetUnit.CalculateCombatPower(weakestPet.petData, weakestPet.level);
+            long newPetPower = PetUnit.CalculateCombatPower(entry.petData, entry.level);
+            long weakestPower = PetUnit.CalculateCombatPower(weakestPet.petData, weakestPet.level);
 
             if (newPetPower <= weakestPower)
                 continue;

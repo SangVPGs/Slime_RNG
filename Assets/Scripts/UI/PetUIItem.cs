@@ -23,7 +23,7 @@ public class PetUIItem : MonoBehaviour
     private InventorySystem.PetInventoryEntry entry;
     private Action<InventorySystem.PetInventoryEntry> onClicked;
 
-    public void SetupInventory(
+    public void SetupPetInventory(
         InventorySystem.PetInventoryEntry inventoryEntry,
         Action<InventorySystem.PetInventoryEntry> clickCallback,
         bool showButton)
@@ -45,6 +45,18 @@ public class PetUIItem : MonoBehaviour
         onClicked = clickCallback;
 
         SetupButton(showButton, "Remove", removeColor);
+    }
+
+    public void SetupUseItem(
+    InventorySystem.PetInventoryEntry partyEntry,
+    Action<InventorySystem.PetInventoryEntry> clickCallback,
+    bool showButton)
+    {
+        SetupInfo(partyEntry);
+
+        onClicked = clickCallback;
+
+        SetupButton(showButton, "Use", addColor);
     }
 
     public void SetupIndex(PetUnitData petData)
@@ -97,7 +109,7 @@ public class PetUIItem : MonoBehaviour
 
         if(combatPowerText != null)
         {
-            int cp = PetUnit.CalculateCombatPower(entry.petData, entry.level);
+            long cp = PetUnit.CalculateCombatPower(entry.petData, entry.level);
             combatPowerText.text = $"CP {cp}";
         }
     }

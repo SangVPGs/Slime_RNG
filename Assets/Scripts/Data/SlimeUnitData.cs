@@ -5,8 +5,12 @@ using UnityEngine;
 public class SlimeUnitData : UnitData
 {
     [Header("Slime Info")]
-    public int goldDrop;
+    public int baseGoldDrop;
 
+    [Header("Slime Growth Per Level")]
+    public int hpPerLevel = 500;
+    public int atkPerLevel = 50;
+    public int goldDropPerLevel = 10;
 
 #if UNITY_EDITOR
     private void OnValidate()

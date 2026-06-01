@@ -17,9 +17,8 @@ public class SlimeUnit : Unit
     [Header("Movement")]
     [SerializeField] private float stopDistanceFromPlayer = 2f;
 
-    [Header("Slime Growth Per Level")]
-    [SerializeField] private int hpPerLevel = 500;
-    [SerializeField] private int atkPerLevel = 50;
+    [Header("Gold Drop")]
+    [SerializeField] private int goldDrop;
 
     private SlimeSpawner spawner;
 
@@ -69,8 +68,10 @@ public class SlimeUnit : Unit
 
         int levelOffset = Mathf.Max(0, currentLevel - 1);
 
-        maxHp += hpPerLevel * levelOffset;
-        atk += atkPerLevel * levelOffset;
+        maxHp += SlimeData.hpPerLevel * levelOffset;
+        atk += SlimeData.atkPerLevel * levelOffset;
+        
+        goldDrop = Mathf.Max(0, SlimeData.baseGoldDrop + SlimeData.goldDropPerLevel * levelOffset);
     }
 
     private void FixedUpdate()
@@ -146,12 +147,23 @@ public class SlimeUnit : Unit
         if (slimeData == null)
             return;
 
+        waitingRespawn = false;
+        respawnTimer = 0f;
+
+        Physics.SyncTransforms();
+
+        if (visualRoot != null)
+        {
+            visualRoot.localPosition = Vector3.zero;
+            visualRoot.localRotation = Quaternion.identity;
+            visualRoot.localScale = Vector3.one;
+        }
+
+        gameObject.SetActive(true);
+
         Init(slimeData);
 
         SetLevel(Mathf.Max(1, mapLevel));
-
-        waitingRespawn = false;
-        respawnTimer = 0f;
 
         DisableUnusedNavigation();
         DisableRootMotion();
@@ -165,19 +177,8 @@ public class SlimeUnit : Unit
             rb.position = position;
         }
 
-        Physics.SyncTransforms();
-
-        if (visualRoot != null)
-        {
-            visualRoot.localPosition = Vector3.zero;
-            visualRoot.localRotation = Quaternion.identity;
-            visualRoot.localScale = Vector3.one;
-        }
-
         currentPetTarget = null;
         nextScanTime = 0f;
-
-        gameObject.SetActive(true);
 
         Revive();
     }
@@ -292,7 +293,7 @@ public class SlimeUnit : Unit
         base.Die();
 
         if (GameManager.Instance != null && SlimeData != null)
-            GameManager.Instance.AddGold(SlimeData.goldDrop);
+            GameManager.Instance.AddGold(goldDrop);
     }
 
     public override bool LevelUp()
@@ -309,6 +310,9 @@ public class SlimeUnit : Unit
     {
         if (!IsDead)
             return;
+
+        if (ItemDropSystem.Instance != null)
+            ItemDropSystem.Instance.DropRandomItem(transform.position);
 
         gameObject.SetActive(false);
 

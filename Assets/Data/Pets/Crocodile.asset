@@ -15,11 +15,16 @@ MonoBehaviour:
   id: P006
   unitName: Crocodile
   model: {fileID: 919132149155446097, guid: be92a3362f2847a4d8c7c363c20c5698, type: 3}
-  hp: 4000
-  atk: 349
-  atkRange: 2
-  atkSpeed: 0.9
-  speed: 6
-  heal: 50
+  baseHp: 100
+  baseAtk: 10
+  baseAtkRange: 1.5
+  baseAtkSpeed: 1
+  baseSpeed: 3.5
+  defaultLevel: 1
+  maxLevel: 999
+  baseHeal: 10
   rarity: 2
   icon: {fileID: 21300000, guid: 81ba28ad7d8c54c43b604f9c52a762a7, type: 3}
+  hpGrowthMultiplier: 1.12
+  atkGrowthMultiplier: 1.08
+  healGrowthMultiplier: 1.05

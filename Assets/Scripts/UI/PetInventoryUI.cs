@@ -157,7 +157,7 @@ public class PetInventoryUI : MonoBehaviour
 
             PetUIItem item = Instantiate(petItemPrefab, contentParent);
 
-            item.SetupInventory(
+            item.SetupPetInventory(
                 entry,
                 OnPetClicked,
                 canManualEquip
