@@ -6,12 +6,14 @@ public class UpgradeNodeView : MonoBehaviour
 {
     [Header("UI")]
     [SerializeField] private TMP_Text nameText;
-    [SerializeField] private TMP_Text costText;
-    [SerializeField] private Button button;
     [SerializeField] private Image iconImage;
-    [SerializeField] private Image lockOverlay;
-    [SerializeField] private Image unlockedOverlay;
-    [SerializeField] private Image availableOverlay;
+
+    [Header("Lock")]
+    [SerializeField] private GameObject lockOverlay;
+    [SerializeField] private TMP_Text costText;
+
+    [Header("Button")]
+    [SerializeField] private Button nodeButton;
 
     private UpgradeTreeSystem treeSystem;
     private UpgradeNodeData node;
@@ -21,8 +23,14 @@ public class UpgradeNodeView : MonoBehaviour
 
     public void Setup(UpgradeTreeSystem treeSystem, UpgradeNodeData node)
     {
+        if (this.treeSystem != null)
+            this.treeSystem.OnTreeChanged -= Refresh;
+
         this.treeSystem = treeSystem;
         this.node = node;
+
+        if (this.treeSystem != null)
+            this.treeSystem.OnTreeChanged += Refresh;
 
         SetupButton();
         Refresh();
@@ -30,20 +38,26 @@ public class UpgradeNodeView : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (button != null)
-            button.onClick.RemoveListener(OnClick);
+        if (nodeButton != null)
+            nodeButton.onClick.RemoveListener(OnNodeClicked);
+
+        if (treeSystem != null)
+            treeSystem.OnTreeChanged -= Refresh;
     }
 
     private void SetupButton()
     {
-        if (button == null)
+        if (nodeButton == null)
+            nodeButton = GetComponent<Button>();
+
+        if (nodeButton == null)
         {
-            Debug.LogWarning($"UpgradeNodeView '{name}' is missing button.");
+            Debug.LogWarning($"UpgradeNodeView '{name}' is missing Button.");
             return;
         }
 
-        button.onClick.RemoveListener(OnClick);
-        button.onClick.AddListener(OnClick);
+        nodeButton.onClick.RemoveListener(OnNodeClicked);
+        nodeButton.onClick.AddListener(OnNodeClicked);
     }
 
     public void Refresh()
@@ -51,11 +65,14 @@ public class UpgradeNodeView : MonoBehaviour
         if (node == null || treeSystem == null)
             return;
 
+        RefreshContent();
+        RefreshState();
+    }
+
+    private void RefreshContent()
+    {
         if (nameText != null)
             nameText.text = string.IsNullOrWhiteSpace(node.DisplayName) ? node.name : node.DisplayName;
-
-        if (costText != null)
-            costText.text = node.Cost.ToString();
 
         if (iconImage != null)
         {
@@ -63,26 +80,31 @@ public class UpgradeNodeView : MonoBehaviour
             iconImage.gameObject.SetActive(node.Icon != null);
         }
 
+        if (costText != null)
+            costText.text = node.Cost <= 0 ? "Free" : node.Cost.ToString();
+    }
+
+    private void RefreshState()
+    {
         bool unlocked = treeSystem.IsUnlocked(node);
         bool canUnlock = treeSystem.CanUnlock(node);
 
-        if (button != null)
-            button.interactable = canUnlock;
-
         if (lockOverlay != null)
-            lockOverlay.gameObject.SetActive(!unlocked && !canUnlock);
+            lockOverlay.SetActive(!unlocked);
 
-        if (unlockedOverlay != null)
-            unlockedOverlay.gameObject.SetActive(unlocked);
-
-        if (availableOverlay != null)
-            availableOverlay.gameObject.SetActive(!unlocked && canUnlock);
+        if (nodeButton != null)
+            nodeButton.interactable = !unlocked && canUnlock;
     }
 
-    private void OnClick()
+    private void OnNodeClicked()
     {
         if (treeSystem == null || node == null)
             return;
+
+        if (!treeSystem.CanUnlock(node))
+            return;
+
+        Debug.Log("Clicked");
 
         treeSystem.Unlock(node);
     }

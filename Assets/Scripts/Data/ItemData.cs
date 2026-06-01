@@ -20,6 +20,10 @@ public class ItemData : ScriptableObject
     [SerializeField] private Sprite icon;
     [SerializeField] private GameObject prefab;
 
+    [Header("Drop")]
+    [SerializeField] private bool requireUnlock = true;
+    [SerializeField] private int dropWeight = 100;
+
     [Header("Stack")]
     [SerializeField] private bool stackable = true;
     [SerializeField] private int maxStack = 99;
@@ -41,6 +45,9 @@ public class ItemData : ScriptableObject
 
     public bool Stackable => stackable;
     public int MaxStack => maxStack;
+
+    public bool RequireUnlock => requireUnlock;
+    public int DropWeight => Mathf.Max(0, dropWeight);
 
     public ItemType ItemType => itemType;
     public UpgradeStatType StatType => statType;
@@ -67,7 +74,7 @@ public class ItemData : ScriptableObject
 
         int count = guids.Length;
 
-        return $"I{count:000}";
+        return $"ITM{count:000}";
     }
 
 #endif

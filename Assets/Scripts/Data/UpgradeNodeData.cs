@@ -21,23 +21,19 @@ public enum UpgradeStatType
 [CreateAssetMenu(menuName = "Game/Upgrade Node")]
 public class UpgradeNodeData : ScriptableObject
 {
-    [Header("Identity")]
     [SerializeField, HideInInspector] private string id;
 
     [SerializeField] private string displayName;
     [SerializeField] private Sprite icon;
 
-    [Header("Tree")]
     [SerializeField] private UpgradeNodeData parent;
 
-    [Header("Cost")]
+    [SerializeField] private Vector2 uiPosition;
+
     [SerializeField, Min(0)] private int cost;
 
-    [Header("Effect")]
     [SerializeField] private UpgradeEffectType effectType;
-
     [SerializeField] private string targetId;
-
     [SerializeField] private UpgradeStatType statType;
     [SerializeField] private StatModifierType statModifierType;
     [SerializeField] private float value;
@@ -49,6 +45,8 @@ public class UpgradeNodeData : ScriptableObject
     public UpgradeNodeData Parent => parent;
     public string ParentId => parent != null ? parent.Id : string.Empty;
     public bool IsRoot => parent == null;
+
+    public Vector2 UiPosition => uiPosition;
 
     public int Cost => cost;
 
@@ -90,7 +88,7 @@ public class UpgradeNodeData : ScriptableObject
         if (parent == this)
         {
             parent = null;
-            Debug.LogError($"Upgrade node '{name}' cannot be its own parent.");
+            Debug.LogError($"Upgrade node '{name}' cannot be its own parent.", this);
             EditorUtility.SetDirty(this);
             return;
         }
@@ -98,7 +96,7 @@ public class UpgradeNodeData : ScriptableObject
         if (HasCircularParent())
         {
             parent = null;
-            Debug.LogError($"Upgrade node '{name}' has circular parent reference. Parent has been cleared.");
+            Debug.LogError($"Upgrade node '{name}' has circular parent reference. Parent has been cleared.", this);
             EditorUtility.SetDirty(this);
         }
     }
@@ -108,7 +106,7 @@ public class UpgradeNodeData : ScriptableObject
         if (!string.IsNullOrWhiteSpace(id))
             return;
 
-        id = GenerateStableId();
+        id = GenerateId();
         EditorUtility.SetDirty(this);
     }
 
@@ -147,15 +145,13 @@ public class UpgradeNodeData : ScriptableObject
         return false;
     }
 
-    private string GenerateStableId()
+    private string GenerateId()
     {
-        string path = AssetDatabase.GetAssetPath(this);
-        string guid = AssetDatabase.AssetPathToGUID(path);
+        string[] guids = AssetDatabase.FindAssets("t:UpgradeNodeData");
 
-        if (string.IsNullOrWhiteSpace(guid))
-            return System.Guid.NewGuid().ToString("N");
+        int count = guids.Length;
 
-        return $"UN_{guid[..8].ToUpper()}";
+        return $"UP{count:000}";
     }
 #endif
 }

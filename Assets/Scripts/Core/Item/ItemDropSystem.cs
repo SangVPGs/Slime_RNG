@@ -7,6 +7,9 @@ public class ItemDropSystem : MonoBehaviour
     [Header("Database")]
     [SerializeField] private ItemDatabase itemDatabase;
 
+    [Header("Upgrade")]
+    [SerializeField] private UpgradeTreeSystem upgradeTreeSystem;
+
     [Header("Pickup")]
     [SerializeField] private ItemPickup itemPickupPrefab;
 
@@ -41,15 +44,21 @@ public class ItemDropSystem : MonoBehaviour
         if (roll > dropChance)
             return;
 
-        ItemData itemData = itemDatabase.GetRandomItem();
+        UpgradeContext context =
+            upgradeTreeSystem != null
+                ? upgradeTreeSystem.Context
+                : null;
+
+        ItemData itemData =
+            itemDatabase.GetRandomUnlockedFood(context);
 
         if (itemData == null)
             return;
 
-        int amount = Random.Range(
-            Mathf.Max(1, minAmount),
-            Mathf.Max(1, maxAmount) + 1
-        );
+        int safeMin = Mathf.Max(1, minAmount);
+        int safeMax = Mathf.Max(safeMin, maxAmount);
+
+        int amount = Random.Range(safeMin, safeMax + 1);
 
         Vector2 randomCircle = Random.insideUnitCircle * dropRadius;
 

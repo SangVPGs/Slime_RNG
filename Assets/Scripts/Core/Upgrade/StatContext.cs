@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 
-
 public enum StatModifierType
 {
     Flat,

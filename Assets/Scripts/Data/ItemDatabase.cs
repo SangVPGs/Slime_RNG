@@ -25,14 +25,69 @@ public class ItemDatabase : ScriptableObject
         return null;
     }
 
-    public ItemData GetRandomItem()
+    public ItemData GetRandomUnlockedFood(UpgradeContext upgradeContext)
     {
-        List<ItemData> validItems = items.FindAll(item => item != null);
+        List<ItemData> validItems = new();
 
-        if (validItems.Count == 0)
+        foreach (ItemData item in items)
+        {
+            if (item == null)
+                continue;
+
+            if (item.ItemType != ItemType.Food)
+                continue;
+
+            if (item.DropWeight <= 0)
+                continue;
+
+            if (!item.RequireUnlock)
+            {
+                validItems.Add(item);
+                continue;
+            }
+
+            if (upgradeContext != null &&
+                upgradeContext.IsItemUnlocked(item.Id))
+            {
+                validItems.Add(item);
+            }
+        }
+
+        return GetRandomByWeight(validItems);
+    }
+
+    private ItemData GetRandomByWeight(List<ItemData> validItems)
+    {
+        if (validItems == null || validItems.Count == 0)
             return null;
 
-        int index = Random.Range(0, validItems.Count);
-        return validItems[index];
+        int totalWeight = 0;
+
+        foreach (ItemData item in validItems)
+        {
+            if (item == null)
+                continue;
+
+            totalWeight += item.DropWeight;
+        }
+
+        if (totalWeight <= 0)
+            return null;
+
+        int roll = Random.Range(0, totalWeight);
+        int current = 0;
+
+        foreach (ItemData item in validItems)
+        {
+            if (item == null)
+                continue;
+
+            current += item.DropWeight;
+
+            if (roll < current)
+                return item;
+        }
+
+        return validItems[validItems.Count - 1];
     }
 }

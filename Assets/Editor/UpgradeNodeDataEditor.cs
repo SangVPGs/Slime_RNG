@@ -8,6 +8,7 @@ public class UpgradeNodeDataEditor : Editor
     private SerializedProperty displayName;
     private SerializedProperty icon;
     private SerializedProperty parent;
+    private SerializedProperty uiPosition;
     private SerializedProperty cost;
 
     private SerializedProperty effectType;
@@ -23,6 +24,7 @@ public class UpgradeNodeDataEditor : Editor
         displayName = serializedObject.FindProperty("displayName");
         icon = serializedObject.FindProperty("icon");
         parent = serializedObject.FindProperty("parent");
+        uiPosition = serializedObject.FindProperty("uiPosition");
         cost = serializedObject.FindProperty("cost");
 
         effectType = serializedObject.FindProperty("effectType");
@@ -39,6 +41,7 @@ public class UpgradeNodeDataEditor : Editor
 
         DrawIdentity();
         DrawTree();
+        DrawUI();
         DrawCost();
         DrawEffect();
 
@@ -63,6 +66,14 @@ public class UpgradeNodeDataEditor : Editor
     {
         EditorGUILayout.LabelField("Tree", EditorStyles.boldLabel);
         EditorGUILayout.PropertyField(parent);
+
+        EditorGUILayout.Space(8);
+    }
+
+    private void DrawUI()
+    {
+        EditorGUILayout.LabelField("UI", EditorStyles.boldLabel);
+        EditorGUILayout.PropertyField(uiPosition);
 
         EditorGUILayout.Space(8);
     }

@@ -10,15 +10,16 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b1bb0c4f47329c24ba618dc7e0232ead, type: 3}
-  m_Name: Upgrade Root
+  m_Name: Up4
   m_EditorClassIdentifier: 
-  id: UN_B4F5A906
-  displayName: 
-  icon: {fileID: 0}
-  parent: {fileID: 0}
-  cost: 0
-  effectType: 1
-  targetId: 
-  statType: 1
+  id: UP005
+  displayName: Up4
+  icon: {fileID: 21300000, guid: 09ccf297199e9044781580b60fac86ac, type: 3}
+  parent: {fileID: 11400000, guid: 1d7b805a50613724b8ba4104b94f564a, type: 2}
+  uiPosition: {x: 0, y: -300}
+  cost: 100
+  effectType: 0
+  targetId: ITM002
+  statType: 0
   statModifierType: 0
   value: 0
