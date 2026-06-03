@@ -15,13 +15,11 @@ MonoBehaviour:
   id: P007
   unitName: Dolphin
   model: {fileID: 919132149155446097, guid: 00b46cc69b702d1459055cf9364ea977, type: 3}
-  baseHp: 100
-  baseAtk: 10
-  baseAtkRange: 1.5
+  baseHp: 7200
+  baseAtk: 670
+  baseAtkRange: 3
   baseAtkSpeed: 1
-  baseSpeed: 3.5
-  defaultLevel: 1
-  maxLevel: 999
+  baseSpeed: 8
   baseHeal: 10
   rarity: 3
   icon: {fileID: 21300000, guid: 81ba28ad7d8c54c43b604f9c52a762a7, type: 3}

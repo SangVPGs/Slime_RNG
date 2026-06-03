@@ -17,7 +17,7 @@ public class ItemDataEditor : Editor
 
     private SerializedProperty itemType;
     private SerializedProperty statType;
-    private SerializedProperty statModifier;
+    private SerializedProperty modifierType;
     private SerializedProperty value;
     private SerializedProperty duration;
 
@@ -35,7 +35,7 @@ public class ItemDataEditor : Editor
 
         itemType = serializedObject.FindProperty("itemType");
         statType = serializedObject.FindProperty("statType");
-        statModifier = serializedObject.FindProperty("statModifier");
+        modifierType = serializedObject.FindProperty("modifierType");
         value = serializedObject.FindProperty("value");
         duration = serializedObject.FindProperty("duration");
     }
@@ -124,7 +124,7 @@ public class ItemDataEditor : Editor
     private void DrawBuffStatEffect()
     {
         EditorGUILayout.PropertyField(statType);
-        EditorGUILayout.PropertyField(statModifier);
+        EditorGUILayout.PropertyField(modifierType);
 
         EditorGUILayout.PropertyField(
             value,

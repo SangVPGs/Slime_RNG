@@ -2,9 +2,8 @@ using UnityEngine;
 
 public class PartyUI : MonoBehaviour
 {
-    [Header("System")]
-    [SerializeField] private PartySystem partySystem;
-    [SerializeField] private InventorySystem inventorySystem;
+    private PartySystem partySystem => PartySystem.Instance;
+    private InventorySystem inventorySystem => InventorySystem.Instance;
 
     [Header("Inventory UI")]
     [SerializeField] private InventoryUI inventoryUI;
@@ -26,6 +25,9 @@ public class PartyUI : MonoBehaviour
             inventoryUI.OnTabChanged += OnInventoryTabChanged;
             inventoryUI.OnSelectedItemChanged += OnSelectedItemChanged;
         }
+
+        if (partySystem != null)
+            partySystem.RebuildPartyEntries();
 
         ShowParty();
     }

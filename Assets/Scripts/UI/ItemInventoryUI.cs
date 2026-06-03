@@ -2,8 +2,7 @@
 
 public class ItemInventoryUI : MonoBehaviour
 {
-    [Header("Inventory")]
-    [SerializeField] private InventorySystem inventorySystem;
+    private InventorySystem inventorySystem => InventorySystem.Instance;
 
     [Header("Inventory UI")]
     [SerializeField] private InventoryUI inventoryUI;
@@ -15,9 +14,7 @@ public class ItemInventoryUI : MonoBehaviour
     private void OnEnable()
     {
         if (inventorySystem != null)
-            inventorySystem.OnInventoryChanged += Refresh;
-
-        Refresh();
+            inventorySystem.OnInventoryChanged += Refresh;       
     }
 
     private void OnDisable()

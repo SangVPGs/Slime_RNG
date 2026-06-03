@@ -3,9 +3,8 @@ using UnityEngine;
 
 public class PartyController : MonoBehaviour
 {
-    [Header("Data")]
-    [SerializeField] private PartySystem partySystem;
-    [SerializeField] private InventorySystem inventorySystem;
+    private PartySystem partySystem => PartySystem.Instance;
+    private InventorySystem inventorySystem => InventorySystem.Instance;
 
     [Header("Pet Prefab")]
     [SerializeField] private PetUnit petPrefab;
@@ -48,13 +47,16 @@ public class PartyController : MonoBehaviour
 
     private void Start()
     {
+        if (partySystem != null)
+            partySystem.RebuildPartyEntries();
+
         SyncParty();
     }
 
-    private void FixedUpdate()
-    {
+    private void FixedUpdate() 
+    { 
         ScanTargetByInterval();
-
+        
         if (HasValidTarget())
         {
             if (HasAnyPetInAttackRange(currentSlimeTarget))
@@ -62,14 +64,13 @@ public class PartyController : MonoBehaviour
                 AttackTarget();
                 return;
             }
-
-            if (!IsPartyTooFarFromPlayer())
-            {
+            
+            if (!IsPartyTooFarFromPlayer()) 
+            { 
                 AttackTarget();
                 return;
             }
         }
-
         FollowPlayer();
     }
 

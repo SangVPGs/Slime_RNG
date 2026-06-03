@@ -16,12 +16,10 @@ MonoBehaviour:
   unitName: Dragon
   model: {fileID: 919132149155446097, guid: 7d858c08564d7bb4881ccc480a46c6fe, type: 3}
   baseHp: 10000
-  baseAtk: 500
-  baseAtkRange: 1.5
-  baseAtkSpeed: 1
-  baseSpeed: 3.5
-  defaultLevel: 1
-  maxLevel: 999
+  baseAtk: 1000
+  baseAtkRange: 3
+  baseAtkSpeed: 1.5
+  baseSpeed: 10
   baseHeal: 100
   rarity: 4
   icon: {fileID: 21300000, guid: 81ba28ad7d8c54c43b604f9c52a762a7, type: 3}

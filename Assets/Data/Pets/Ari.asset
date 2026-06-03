@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4ef7d40dd599754d83ca1d3b6e34eda, type: 3}
+  m_Name: Ari
+  m_EditorClassIdentifier: 
+  id: P017
+  unitName: Ari
+  model: {fileID: 919132149155446097, guid: 693a314beb172b94bad98773adee7383, type: 3}
+  baseHp: 9600
+  baseAtk: 960
+  baseAtkRange: 1.5
+  baseAtkSpeed: 1
+  baseSpeed: 7
+  baseHeal: 100
+  rarity: 4
+  icon: {fileID: 0}
+  hpGrowthMultiplier: 1.12
+  atkGrowthMultiplier: 1.08
+  healGrowthMultiplier: 1.05

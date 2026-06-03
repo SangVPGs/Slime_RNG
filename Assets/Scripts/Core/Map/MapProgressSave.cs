@@ -13,12 +13,12 @@ public static class MapProgressSave
         PlayerPrefs.Save();
     }
 
-    public static int LoadCurrentMapLevel(int defaultLevel = 0)
+    public static int LoadCurrentMapLevel(int defaultLevel = 1)
     {
         return PlayerPrefs.GetInt(CurrentMapLevelKey, defaultLevel);
     }
 
-    public static void Clear()
+    public static void ResetCurrentMapLevel()
     {
         PlayerPrefs.DeleteKey(CurrentMapLevelKey);
         PlayerPrefs.Save();

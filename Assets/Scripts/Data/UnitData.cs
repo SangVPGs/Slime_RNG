@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public abstract class UnitData : ScriptableObject
@@ -16,7 +17,6 @@ public abstract class UnitData : ScriptableObject
     public float baseAtkSpeed = 1f;
     public float baseSpeed = 3.5f;
 
-    [Header("Level")]
-    public int defaultLevel = 1;
-    public int maxLevel = 999;
+    [NonSerialized] public int defaultLevel = 1;
+    [NonSerialized] public int maxLevel = 999;
 }

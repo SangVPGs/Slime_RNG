@@ -10,8 +10,7 @@ public class PartySystem : MonoBehaviour
 
     public event Action OnPartyChanged;
 
-    [Header("Inventory")]
-    [SerializeField] private InventorySystem inventorySystem;
+    private InventorySystem inventorySystem => InventorySystem.Instance;
 
     [Header("Data")]
     [SerializeField] private PartyData data = new();
@@ -21,10 +20,21 @@ public class PartySystem : MonoBehaviour
     public PartyData Data => data;
     public bool AutoEquip => autoEquip;
 
+    public static PartySystem Instance { get; private set; }
+
     private void Awake()
     {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+
         Load();
-        autoEquip = PlayerPrefs.GetInt(AutoEquipKey, 0) == 1;
+
+        autoEquip = PlayerPrefs.GetInt(AutoEquipKey, 1) == 1;
     }
 
     private void Start()
@@ -164,17 +174,24 @@ public class PartySystem : MonoBehaviour
 
         data.ClearRuntimeOnly();
 
+        inventorySystem.Data.SetAllPetsOutParty();
+
         foreach (string petId in data.PetIds)
         {
             InventorySystem.PetInventoryEntry entry =
                 inventorySystem.Data.GetEntryByPetId(petId);
 
             if (entry == null || entry.petData == null)
+            {
+                Debug.LogWarning($"Party pet not found in inventory: {petId}");
                 continue;
+            }
 
             data.AddRuntimeEntry(entry);
             entry.isInParty = true;
         }
+
+        inventorySystem.SaveAndNotify();
     }
 
     private InventorySystem.PetInventoryEntry GetWeakestPartyPet()
@@ -208,12 +225,18 @@ public class PartySystem : MonoBehaviour
     private void Load()
     {
         if (!PlayerPrefs.HasKey(SaveKey))
+        {
+            data.ClearParty();
             return;
+        }
 
         string json = PlayerPrefs.GetString(SaveKey);
 
         if (string.IsNullOrEmpty(json))
+        {
+            data.ClearParty();
             return;
+        }
 
         JsonUtility.FromJsonOverwrite(json, data);
     }

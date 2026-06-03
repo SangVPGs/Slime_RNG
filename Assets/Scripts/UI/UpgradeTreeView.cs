@@ -3,8 +3,7 @@ using UnityEngine;
 
 public class UpgradeTreeView : MonoBehaviour
 {
-    [Header("System")]
-    [SerializeField] private UpgradeTreeSystem treeSystem;
+    private UpgradeTreeSystem treeSystem => UpgradeTreeSystem.Instance;
 
     [Header("Layers")]
     [SerializeField] private RectTransform nodeLayer;
@@ -19,6 +18,8 @@ public class UpgradeTreeView : MonoBehaviour
 
     private readonly Dictionary<string, UpgradeNodeView> nodeViews = new();
     private readonly List<UpgradeLineView> lineViews = new();
+
+    private bool built;
 
     private void OnEnable()
     {
@@ -47,32 +48,17 @@ public class UpgradeTreeView : MonoBehaviour
             return;
         }
 
-        if (nodeLayer == null)
+        if (nodeLayer == null || lineLayer == null || nodePrefab == null || linePrefab == null)
         {
-            Debug.LogError("UpgradeTreeView: NodeLayer is missing.");
-            return;
-        }
-
-        if (lineLayer == null)
-        {
-            Debug.LogError("UpgradeTreeView: LineLayer is missing.");
-            return;
-        }
-
-        if (nodePrefab == null)
-        {
-            Debug.LogError("UpgradeTreeView: NodePrefab is missing.");
-            return;
-        }
-
-        if (linePrefab == null)
-        {
-            Debug.LogError("UpgradeTreeView: LinePrefab is missing.");
+            Debug.LogError("UpgradeTreeView: Missing layer or prefab reference.");
             return;
         }
 
         SpawnNodes();
         SpawnLines();
+
+        built = true;
+
         RefreshAll();
     }
 
@@ -111,6 +97,7 @@ public class UpgradeTreeView : MonoBehaviour
                 continue;
 
             UpgradeLineView line = Instantiate(linePrefab, lineLayer);
+            line.Setup(parent, node);
             line.Draw(parent.UiPosition, node.UiPosition, lineThickness);
 
             lineViews.Add(line);
@@ -119,11 +106,59 @@ public class UpgradeTreeView : MonoBehaviour
 
     public void RefreshAll()
     {
+        if (!built)
+            return;
+
+        RefreshNodeViews();
+        RefreshLineViews();
+    }
+
+    private void RefreshNodeViews()
+    {
         foreach (UpgradeNodeView view in nodeViews.Values)
         {
-            if (view != null)
+            if (view == null || view.Node == null)
+                continue;
+
+            bool visible = ShouldShowNode(view.Node);
+
+            view.SetVisible(visible);
+
+            if (visible)
                 view.Refresh();
         }
+    }
+
+    private void RefreshLineViews()
+    {
+        foreach (UpgradeLineView line in lineViews)
+        {
+            if (line == null || line.FromNode == null || line.ToNode == null)
+                continue;
+
+            bool visible = ShouldShowLine(line.FromNode, line.ToNode);
+
+            line.SetVisible(visible);
+        }
+    }
+
+    private bool ShouldShowNode(UpgradeNodeData node)
+    {
+        if (node == null)
+            return false;
+
+        if (node.IsRoot)
+            return true;
+
+        return treeSystem.IsUnlocked(node.ParentId);
+    }
+
+    private bool ShouldShowLine(UpgradeNodeData fromNode, UpgradeNodeData toNode)
+    {
+        if (fromNode == null || toNode == null)
+            return false;
+
+        return ShouldShowNode(fromNode) && ShouldShowNode(toNode);
     }
 
     private void Clear()
@@ -142,5 +177,7 @@ public class UpgradeTreeView : MonoBehaviour
 
         nodeViews.Clear();
         lineViews.Clear();
+
+        built = false;
     }
 }

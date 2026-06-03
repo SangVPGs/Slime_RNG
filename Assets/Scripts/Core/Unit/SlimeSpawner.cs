@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 
-
 public readonly struct SlimeSpawnContext
 {
     public readonly int MapLevel;
@@ -28,13 +27,14 @@ public class SlimeSpawner : MonoBehaviour
     [Header("Spawn Area")]
     [SerializeField] private Vector2 areaSize = new Vector2(50f, 50f);
     [SerializeField] private float spawnY = 0f;
+    [SerializeField] private float edgeInset = 5f;
 
     [Header("Out Of Range By Z")]
     [SerializeField] private float maxZDistanceFromPlayer = 80f;
     [SerializeField] private float outOfRangeCheckInterval = 1f;
     [SerializeField] private float outOfRangeRespawnCooldown = 3f;
 
-    [Header("First Map Limit")]
+    [Header("World Min Spawn Z Limit")]
     [SerializeField] private bool limitFirstMapStart = true;
     [SerializeField] private float firstMapStartZ = -50f;
 
@@ -98,7 +98,6 @@ public class SlimeSpawner : MonoBehaviour
     public void SetContext(SlimeSpawnContext context)
     {
         currentContext = context;
-
         currentEnemies.Clear();
 
         if (context.Enemies != null)
@@ -294,6 +293,9 @@ public class SlimeSpawner : MonoBehaviour
         float halfWidth = areaSize.x * 0.5f;
         float halfHeight = areaSize.y * 0.5f;
 
+        float safeHalfWidth = Mathf.Max(0f, halfWidth - edgeInset);
+        float safeHalfHeight = Mathf.Max(0f, halfHeight - edgeInset);
+
         int edge = Random.Range(0, 4);
 
         float x = 0f;
@@ -302,33 +304,40 @@ public class SlimeSpawner : MonoBehaviour
         switch (edge)
         {
             case 0:
-                x = Random.Range(-halfWidth, halfWidth);
-                z = halfHeight;
+                x = Random.Range(-safeHalfWidth, safeHalfWidth);
+                z = safeHalfHeight;
                 break;
 
             case 1:
-                x = Random.Range(-halfWidth, halfWidth);
-                z = -halfHeight;
+                x = Random.Range(-safeHalfWidth, safeHalfWidth);
+                z = -safeHalfHeight;
                 break;
 
             case 2:
-                x = -halfWidth;
-                z = Random.Range(-halfHeight, halfHeight);
+                x = -safeHalfWidth;
+                z = Random.Range(-safeHalfHeight, safeHalfHeight);
                 break;
 
             case 3:
-                x = halfWidth;
-                z = Random.Range(-halfHeight, halfHeight);
+                x = safeHalfWidth;
+                z = Random.Range(-safeHalfHeight, safeHalfHeight);
                 break;
         }
 
         float finalX = transform.position.x + x;
         float finalZ = transform.position.z + z;
 
-        if (limitFirstMapStart)
-            finalZ = Mathf.Max(finalZ, firstMapStartZ);
+        finalZ = ClampMinSpawnZ(finalZ);
 
         return new Vector3(finalX, spawnY, finalZ);
+    }
+
+    private float ClampMinSpawnZ(float z)
+    {
+        if (!limitFirstMapStart)
+            return z;
+
+        return Mathf.Max(z, firstMapStartZ);
     }
 
 #if UNITY_EDITOR
@@ -344,6 +353,25 @@ public class SlimeSpawner : MonoBehaviour
             center,
             new Vector3(areaSize.x, 0.15f, maxZDistanceFromPlayer * 2f)
         );
+
+        if (limitFirstMapStart)
+        {
+            Gizmos.color = Color.red;
+
+            Vector3 startLineCenter = new Vector3(
+                transform.position.x,
+                spawnY + 0.05f,
+                firstMapStartZ
+            );
+
+            Vector3 startLineSize = new Vector3(
+                areaSize.x,
+                0.1f,
+                0.2f
+            );
+
+            Gizmos.DrawWireCube(startLineCenter, startLineSize);
+        }
     }
 #endif
 }

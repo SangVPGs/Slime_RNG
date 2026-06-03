@@ -11,26 +11,37 @@ public class UpgradeTreeSystem : MonoBehaviour
     private readonly List<string> unlockedNodeOrder = new();
     private readonly Dictionary<string, UpgradeNodeData> nodeMap = new();
 
-    private UpgradeContext context = new();
-
     private const string SaveKey = "UpgradeTree_SaveData";
 
     public event Action<UpgradeNodeData> OnNodeUnlocked;
     public event Action OnTreeChanged;
 
-    public UpgradeContext Context => context;
-
     public IReadOnlyCollection<string> UnlockedNodeIds => unlockedNodeIds;
     public IReadOnlyList<string> UnlockedNodeOrder => unlockedNodeOrder;
 
-    public IReadOnlyList<UpgradeNodeData> AllNodes =>
-        database != null ? database.Nodes : Array.Empty<UpgradeNodeData>();
+    public IReadOnlyList<UpgradeNodeData> AllNodes => database != null ? database.Nodes : Array.Empty<UpgradeNodeData>();
+
+    public static UpgradeTreeSystem Instance { get; private set; }
+
+    private PlayerStatContext PlayerStats => PlayerStatContext.Instance;
+    private UnlockItemContext UnlockItems => UnlockItemContext.Instance;
 
     private void Awake()
     {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+    }
+
+    private void Start()
+    {
         BuildNodeMap();
         Load();
-        RebuildContext();
+        RebuildUpgradeEffects();
     }
 
     private void BuildNodeMap()
@@ -50,13 +61,11 @@ public class UpgradeTreeSystem : MonoBehaviour
 
             if (string.IsNullOrWhiteSpace(node.Id))
             {
-                Debug.LogWarning($"Upgrade node '{node.name}' has empty id.");
                 continue;
             }
 
             if (nodeMap.ContainsKey(node.Id))
             {
-                Debug.LogWarning($"Duplicate upgrade node id detected: {node.Id}");
                 continue;
             }
 
@@ -86,8 +95,8 @@ public class UpgradeTreeSystem : MonoBehaviour
 
     public bool IsItemUnlocked(string itemId)
     {
-        return context != null &&
-               context.IsItemUnlocked(itemId);
+        return UnlockItems != null &&
+               UnlockItems.IsItemUnlocked(itemId);
     }
 
     public bool CanUnlock(UpgradeNodeData node)
@@ -101,7 +110,9 @@ public class UpgradeTreeSystem : MonoBehaviour
         if (IsUnlocked(node))
             return false;
 
-        if (!CanPay(node.Cost))
+        int finalCost = node.Cost; // GetFinalUnlockCost(node.Cost);
+
+        if (!CanPay(finalCost))
             return false;
 
         if (node.IsRoot)
@@ -109,6 +120,25 @@ public class UpgradeTreeSystem : MonoBehaviour
 
         return IsUnlocked(node.ParentId);
     }
+
+    //public int GetFinalUnlockCost(int baseCost)
+    //{
+    //    if (baseCost <= 0)
+    //        return 0;
+
+    //    float finalCost = baseCost;
+
+    //    if (PlayerStats != null)
+    //    {
+    //        float reductionPercent = PlayerStats.GetFinalStat(UpgradeStatType.UnlockGoldCostReduction,0f);
+
+    //        reductionPercent = Mathf.Clamp(reductionPercent, 0f, 95f);
+
+    //        finalCost *= 1f - reductionPercent / 100f;
+    //    }
+
+    //    return Mathf.Max(0, Mathf.RoundToInt(finalCost));
+    //}
 
     private bool CanPay(int cost)
     {
@@ -143,7 +173,9 @@ public class UpgradeTreeSystem : MonoBehaviour
         if (!CanUnlock(node))
             return false;
 
-        if (!Pay(node.Cost))
+        int finalCost = node.Cost; // GetFinalUnlockCost(node.Cost);
+
+        if (!Pay(finalCost))
             return false;
 
         bool added = unlockedNodeIds.Add(node.Id);
@@ -153,9 +185,8 @@ public class UpgradeTreeSystem : MonoBehaviour
 
         unlockedNodeOrder.Add(node.Id);
 
-        ApplyNodeToContext(node);
-
         Save();
+        RebuildUpgradeEffects();
 
         Debug.Log($"Upgrade unlocked: {node.DisplayName} (ID: {node.Id})");
 
@@ -165,17 +196,13 @@ public class UpgradeTreeSystem : MonoBehaviour
         return true;
     }
 
-    private void ApplyNodeToContext(UpgradeNodeData node)
+    private void RebuildUpgradeEffects()
     {
-        if (node == null)
-            return;
+        if (PlayerStats != null)
+            PlayerStats.ClearUpgradeStats();
 
-        node.Apply(context);
-    }
-
-    private void RebuildContext()
-    {
-        context = new UpgradeContext();
+        if (UnlockItems != null)
+            UnlockItems.Clear();
 
         foreach (string nodeId in unlockedNodeOrder)
         {
@@ -184,27 +211,24 @@ public class UpgradeTreeSystem : MonoBehaviour
             if (node == null)
                 continue;
 
-            ApplyNodeToContext(node);
+            switch (node.EffectType)
+            {
+                case UpgradeEffectType.ChangeStat:
+                    node.ApplyStat(PlayerStats);
+                    break;
+
+                case UpgradeEffectType.UnlockItem:
+                    node.ApplyUnlockItem(UnlockItems);
+                    break;
+            }
         }
-    }
 
-    public void RefreshContext()
-    {
-        RebuildContext();
         OnTreeChanged?.Invoke();
     }
 
-    public void ClearSave()
+    public void RefreshUpgradeEffects()
     {
-        unlockedNodeIds.Clear();
-        unlockedNodeOrder.Clear();
-
-        context.Clear();
-
-        PlayerPrefs.DeleteKey(SaveKey);
-        PlayerPrefs.Save();
-
-        OnTreeChanged?.Invoke();
+        RebuildUpgradeEffects();
     }
 
     private void Save()
@@ -246,9 +270,7 @@ public class UpgradeTreeSystem : MonoBehaviour
 
             if (!nodeMap.ContainsKey(nodeId))
             {
-                Debug.LogWarning(
-                    $"Saved upgrade id not found in current database: {nodeId}"
-                );
+                Debug.LogWarning($"Saved upgrade id not found in current database: {nodeId}");
 
                 continue;
             }
@@ -256,6 +278,18 @@ public class UpgradeTreeSystem : MonoBehaviour
             if (unlockedNodeIds.Add(nodeId))
                 unlockedNodeOrder.Add(nodeId);
         }
+    }
+
+    public void ClearData()
+    {
+        unlockedNodeIds.Clear();
+        unlockedNodeOrder.Clear();
+
+        PlayerPrefs.DeleteKey(SaveKey);
+        PlayerPrefs.Save();
+
+        RebuildUpgradeEffects();
+        OnTreeChanged?.Invoke();
     }
 
     [Serializable]

@@ -6,9 +6,8 @@ using UnityEngine.UI;
 
 public class PetInventoryUI : MonoBehaviour
 {
-    [Header("System")]
-    [SerializeField] private InventorySystem inventorySystem;
-    [SerializeField] private PartySystem partySystem;
+    InventorySystem inventorySystem => InventorySystem.Instance;
+    private PartySystem partySystem => PartySystem.Instance;
 
     [Header("UI")]
     [SerializeField] private Transform contentParent;

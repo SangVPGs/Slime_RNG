@@ -14,8 +14,12 @@ public enum UpgradeStatType
 {
     None,
     Luck,
-    Exp,
-    Gold,
+
+    //ExpGain,
+    //GoldGain,
+
+    //UnlockGoldCostReduction,
+    //RebirthGoldCostReduction,
 }
 
 [CreateAssetMenu(menuName = "Game/Upgrade Node")]
@@ -23,17 +27,22 @@ public class UpgradeNodeData : ScriptableObject
 {
     [SerializeField, HideInInspector] private string id;
 
+    [Header("Info")]
     [SerializeField] private string displayName;
     [SerializeField] private Sprite icon;
 
+    [Header("Tree")]
     [SerializeField] private UpgradeNodeData parent;
-
     [SerializeField] private Vector2 uiPosition;
-
     [SerializeField, Min(0)] private int cost;
 
+    [Header("Effect")]
     [SerializeField] private UpgradeEffectType effectType;
-    [SerializeField] private string targetId;
+
+    [Header("Unlock Item")]
+    [SerializeField] private ItemData targetItem;
+
+    [Header("Change Stat")]
     [SerializeField] private UpgradeStatType statType;
     [SerializeField] private StatModifierType statModifierType;
     [SerializeField] private float value;
@@ -47,32 +56,44 @@ public class UpgradeNodeData : ScriptableObject
     public bool IsRoot => parent == null;
 
     public Vector2 UiPosition => uiPosition;
-
     public int Cost => cost;
 
     public UpgradeEffectType EffectType => effectType;
 
-    public string TargetId => targetId;
+    public ItemData TargetItem => targetItem;
+    public string TargetId => targetItem != null ? targetItem.Id : string.Empty;
 
     public UpgradeStatType StatType => statType;
     public StatModifierType StatModifierType => statModifierType;
     public float Value => value;
 
-    public void Apply(UpgradeContext context)
+    public void ApplyStat(PlayerStatContext playerStats)
     {
-        if (context == null)
+        if (playerStats == null)
             return;
 
-        switch (effectType)
-        {
-            case UpgradeEffectType.UnlockItem:
-                context.UnlockItem(targetId);
-                break;
+        if (effectType != UpgradeEffectType.ChangeStat)
+            return;
 
-            case UpgradeEffectType.ChangeStat:
-                context.Stats.AddStat(statType, statModifierType, value);
-                break;
-        }
+        playerStats.UpgradeStats.AddStat(
+            statType,
+            statModifierType,
+            value
+        );
+    }
+
+    public void ApplyUnlockItem(UnlockItemContext unlockContext)
+    {
+        if (unlockContext == null)
+            return;
+
+        if (effectType != UpgradeEffectType.UnlockItem)
+            return;
+
+        if (targetItem == null)
+            return;
+
+        unlockContext.UnlockItem(targetItem.Id);
     }
 
 #if UNITY_EDITOR
@@ -88,7 +109,10 @@ public class UpgradeNodeData : ScriptableObject
         if (parent == this)
         {
             parent = null;
-            Debug.LogError($"Upgrade node '{name}' cannot be its own parent.", this);
+            Debug.LogError(
+                $"Upgrade node '{name}' cannot be its own parent.",
+                this
+            );
             EditorUtility.SetDirty(this);
             return;
         }
@@ -96,7 +120,10 @@ public class UpgradeNodeData : ScriptableObject
         if (HasCircularParent())
         {
             parent = null;
-            Debug.LogError($"Upgrade node '{name}' has circular parent reference. Parent has been cleared.", this);
+            Debug.LogError(
+                $"Upgrade node '{name}' has circular parent reference. Parent has been cleared.",
+                this
+            );
             EditorUtility.SetDirty(this);
         }
     }
@@ -121,7 +148,7 @@ public class UpgradeNodeData : ScriptableObject
                 break;
 
             case UpgradeEffectType.ChangeStat:
-                targetId = string.Empty;
+                targetItem = null;
 
                 if (statType == UpgradeStatType.None)
                     statType = UpgradeStatType.Luck;
@@ -148,7 +175,6 @@ public class UpgradeNodeData : ScriptableObject
     private string GenerateId()
     {
         string[] guids = AssetDatabase.FindAssets("t:UpgradeNodeData");
-
         int count = guids.Length;
 
         return $"UP{count:000}";

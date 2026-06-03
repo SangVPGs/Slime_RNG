@@ -13,8 +13,7 @@ public class InventorySystem : MonoBehaviour
     [SerializeField] private PetDatabase petDatabase;
     [SerializeField] private ItemDatabase itemDatabase;
 
-    [Header("Party")]
-    [SerializeField] private PartySystem partySystem;
+    private PartySystem partySystem => PartySystem.Instance;
 
     [Header("Pet Exp")]
     [SerializeField] private int defaultMaxExp = 100;
@@ -25,8 +24,18 @@ public class InventorySystem : MonoBehaviour
 
     public InventoryData Data => data;
 
+    public static InventorySystem Instance { get; private set; }
+
     private void Awake()
     {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+
         Load();
 
         data.ResolvePetData(petDatabase, defaultMaxExp);
@@ -126,14 +135,6 @@ public class InventorySystem : MonoBehaviour
         return data.IsPetInParty(entry);
     }
 
-    public void SetAllPetsOutParty()
-    {
-        data.SetAllPetsOutParty();
-
-        Save();
-        OnInventoryChanged?.Invoke();
-    }
-
     #endregion
 
     #region Item
@@ -213,7 +214,36 @@ public class InventorySystem : MonoBehaviour
                 }
 
             case ItemType.BuffStat:
-                return false;
+                {
+                    if (item.StatType == UpgradeStatType.None)
+                        return false;
+
+                    if (item.Value <= 0f || item.Duration <= 0f)
+                        return false;
+
+                    if (PlayerStatContext.Instance == null)
+                    {
+                        Debug.LogError("PlayerStatContext is missing.");
+                        return false;
+                    }
+
+                    PlayerStatContext.Instance.AddTemporaryBuff(
+                        item.StatType,
+                        item.ModifierType,
+                        item.Value,
+                        item.Duration
+                    );
+
+                    bool removed = data.RemoveItem(item.Id, 1);
+
+                    if (!removed)
+                        return false;
+
+                    Save();
+                    OnInventoryChanged?.Invoke();
+
+                    return true;
+                }
 
             default:
                 return false;
@@ -246,12 +276,18 @@ public class InventorySystem : MonoBehaviour
     private void Load()
     {
         if (!PlayerPrefs.HasKey(SaveKey))
+        {
+            data.Clear();
             return;
+        }
 
         string json = PlayerPrefs.GetString(SaveKey);
 
         if (string.IsNullOrEmpty(json))
+        {
+            data.Clear();
             return;
+        }
 
         JsonUtility.FromJsonOverwrite(json, data);
     }

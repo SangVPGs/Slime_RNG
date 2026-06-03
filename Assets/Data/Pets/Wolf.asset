@@ -15,14 +15,12 @@ MonoBehaviour:
   id: P014
   unitName: Wolf
   model: {fileID: 919132149155446097, guid: 9c4ac831c16e92b4b8ff93326a7f0a08, type: 3}
-  baseHp: 100
-  baseAtk: 10
+  baseHp: 3600
+  baseAtk: 400
   baseAtkRange: 1.5
-  baseAtkSpeed: 1
-  baseSpeed: 3.5
-  defaultLevel: 1
-  maxLevel: 999
-  baseHeal: 10
+  baseAtkSpeed: 1.2
+  baseSpeed: 8
+  baseHeal: 50
   rarity: 2
   icon: {fileID: 21300000, guid: 81ba28ad7d8c54c43b604f9c52a762a7, type: 3}
   hpGrowthMultiplier: 1.12

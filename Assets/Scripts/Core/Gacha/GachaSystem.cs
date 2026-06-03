@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class GachaSystem : MonoBehaviour
@@ -13,6 +14,19 @@ public class GachaSystem : MonoBehaviour
     [SerializeField] private List<RarityWeightConfig> displayRarityWeights = new();
 
     public IReadOnlyList<PetUnitData> Pets => petDatabase != null ? petDatabase.Pets : null;
+
+    public static GachaSystem Instance { get; private set; }
+
+    private void Awake()
+    {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+    }
 
     public PetUnitData RollPet()
     {
@@ -47,13 +61,14 @@ public class GachaSystem : MonoBehaviour
         }
 
         float totalWeight = 0f;
+        float luck = GetCurrentLuck();
 
         foreach (RarityWeightConfig config in weights)
         {
             if (config == null)
                 continue;
 
-            totalWeight += config.FinalWeight;
+            totalWeight += GetAdjustedWeight(config, luck);
         }
 
         if (totalWeight <= 0f)
@@ -69,7 +84,7 @@ public class GachaSystem : MonoBehaviour
             if (config == null)
                 continue;
 
-            float weight = config.FinalWeight;
+            float weight = GetAdjustedWeight(config, luck);
 
             if (weight <= 0f)
                 continue;
@@ -83,6 +98,21 @@ public class GachaSystem : MonoBehaviour
         return weights[weights.Count - 1].rarity;
     }
 
+    private float GetCurrentLuck()
+    {
+        if (PlayerStatContext.Instance == null)
+            return 1f;
+
+        return PlayerStatContext.Instance.GetFinalStat(UpgradeStatType.Luck,1f);
+    }
+
+    private float GetAdjustedWeight(RarityWeightConfig config, float luck)
+    {
+        int rarityIndex = Mathf.Max(0, (int)config.rarity);
+
+        return config.baseWeight * Mathf.Pow(luck, rarityIndex); // Công thức tính
+    }
+
     private PetUnitData RollPetByRarity(PetRarity rarity)
     {
         List<PetUnitData> candidates = GetPetsByRarity(rarity);
@@ -93,9 +123,7 @@ public class GachaSystem : MonoBehaviour
             return null;
         }
 
-        return candidates[
-            Random.Range(0, candidates.Count)
-        ];
+        return candidates[Random.Range(0, candidates.Count)];
     }
 
     private List<PetUnitData> GetPetsByRarity(PetRarity rarity)
@@ -116,9 +144,7 @@ public class GachaSystem : MonoBehaviour
         if (!HasValidDatabase())
             return null;
 
-        return petDatabase.Pets[
-            Random.Range(0, petDatabase.Pets.Count)
-        ];
+        return petDatabase.Pets[Random.Range(0, petDatabase.Pets.Count)];
     }
 
     private bool HasValidDatabase()

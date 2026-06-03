@@ -3,9 +3,8 @@ using UnityEngine;
 
 public class GachaController : MonoBehaviour
 {
-    [Header("Systems")]
-    [SerializeField] private GachaSystem gachaSystem;
-    [SerializeField] private InventorySystem inventorySystem;
+    private GachaSystem gachaSystem => GachaSystem.Instance;
+     private InventorySystem inventorySystem => InventorySystem.Instance;
 
     [Header("UI Views")]
     [SerializeField] private GachaUI gachaUI;

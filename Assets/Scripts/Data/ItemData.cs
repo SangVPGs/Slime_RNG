@@ -24,15 +24,16 @@ public class ItemData : ScriptableObject
     [SerializeField] private bool requireUnlock = true;
     [SerializeField] private int dropWeight = 100;
 
+
     [Header("Stack")]
     [SerializeField] private bool stackable = true;
-    [SerializeField] private int maxStack = 99;
+    [SerializeField] private int maxStack = 999;
 
     [Header("Effect")]
     [SerializeField] private ItemType itemType;
 
     [SerializeField] private UpgradeStatType statType;
-    [SerializeField] private StatModifierType statModifier;
+    [SerializeField] private StatModifierType modifierType;
     [SerializeField] private float value;
     [SerializeField] private float duration;
 
@@ -51,7 +52,7 @@ public class ItemData : ScriptableObject
 
     public ItemType ItemType => itemType;
     public UpgradeStatType StatType => statType;
-    public StatModifierType StatModifier => statModifier;
+    public StatModifierType ModifierType => modifierType;
     public float Value => value;
     public float Duration => duration;
 

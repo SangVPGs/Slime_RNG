@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 
-[CreateAssetMenu(menuName = "Game/Database/Item Database")]
+[CreateAssetMenu(menuName = "Game/Item Database")]
 public class ItemDatabase : ScriptableObject
 {
     [SerializeField] private List<ItemData> items = new();
@@ -10,62 +10,25 @@ public class ItemDatabase : ScriptableObject
 
     public ItemData GetItemById(string id)
     {
-        if (string.IsNullOrEmpty(id))
+        if (string.IsNullOrWhiteSpace(id))
             return null;
 
         foreach (ItemData item in items)
         {
-            if (item == null)
-                continue;
-
-            if (item.Id == id)
+            if (item != null && item.Id == id)
                 return item;
         }
 
         return null;
     }
 
-    public ItemData GetRandomUnlockedFood(UpgradeContext upgradeContext)
+    public ItemData GetRandomDropItemByWeight(UnlockItemContext unlockContext)
     {
-        List<ItemData> validItems = new();
+        int totalWeight = 0;
 
         foreach (ItemData item in items)
         {
-            if (item == null)
-                continue;
-
-            if (item.ItemType != ItemType.Food)
-                continue;
-
-            if (item.DropWeight <= 0)
-                continue;
-
-            if (!item.RequireUnlock)
-            {
-                validItems.Add(item);
-                continue;
-            }
-
-            if (upgradeContext != null &&
-                upgradeContext.IsItemUnlocked(item.Id))
-            {
-                validItems.Add(item);
-            }
-        }
-
-        return GetRandomByWeight(validItems);
-    }
-
-    private ItemData GetRandomByWeight(List<ItemData> validItems)
-    {
-        if (validItems == null || validItems.Count == 0)
-            return null;
-
-        int totalWeight = 0;
-
-        foreach (ItemData item in validItems)
-        {
-            if (item == null)
+            if (!CanDrop(item, unlockContext))
                 continue;
 
             totalWeight += item.DropWeight;
@@ -74,20 +37,35 @@ public class ItemDatabase : ScriptableObject
         if (totalWeight <= 0)
             return null;
 
-        int roll = Random.Range(0, totalWeight);
-        int current = 0;
+        int value = Random.Range(0, totalWeight);
 
-        foreach (ItemData item in validItems)
+        foreach (ItemData item in items)
         {
-            if (item == null)
+            if (!CanDrop(item, unlockContext))
                 continue;
 
-            current += item.DropWeight;
+            int weight = item.DropWeight;
 
-            if (roll < current)
+            if (value < weight)
                 return item;
+
+            value -= weight;
         }
 
-        return validItems[validItems.Count - 1];
+        return null;
+    }
+
+    private bool CanDrop(ItemData item, UnlockItemContext unlockContext)
+    {
+        if (item == null)
+            return false;
+
+        if (item.DropWeight <= 0)
+            return false;
+
+        if (!item.RequireUnlock)
+            return true;
+
+        return unlockContext != null && unlockContext.IsItemUnlocked(item.Id);
     }
 }

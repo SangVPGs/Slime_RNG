@@ -60,6 +60,14 @@ public class ItemUI : MonoBehaviour
         if (inventoryUI == null)
             return;
 
+        ItemData itemData = entry.itemData;
+
+        if (itemData.ItemType == ItemType.BuffStat)
+        {
+            inventorySystem.UseItem(entry, null);
+            return;
+        }
+
         inventoryUI.SelectItem(entry);
     }
 }

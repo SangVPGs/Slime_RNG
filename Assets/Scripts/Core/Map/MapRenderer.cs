@@ -61,7 +61,7 @@ public class MapRenderer : MonoBehaviour
             return;
         }
 
-        int savedLevel = MapProgressSave.LoadCurrentMapLevel(0);
+        int savedLevel = MapProgressSave.LoadCurrentMapLevel(1);
 
         MapChunk targetMap = FindMapByLevel(savedLevel);
 

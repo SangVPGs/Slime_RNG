@@ -8,11 +8,6 @@ public class RarityWeightConfig
 
     [Min(0f)]
     public float baseWeight = 1f;
-
-    [Min(0f)]
-    public float multiplier = 1f;
-
-    public float FinalWeight => baseWeight * multiplier;
 }
 
 [Serializable]

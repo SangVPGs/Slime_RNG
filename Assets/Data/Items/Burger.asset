@@ -20,9 +20,9 @@ MonoBehaviour:
   requireUnlock: 1
   dropWeight: 100
   stackable: 1
-  maxStack: 99
+  maxStack: 999
   itemType: 0
   statType: 0
-  statModifier: 0
+  modifierType: 0
   value: 100
   duration: 0

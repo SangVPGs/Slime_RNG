@@ -10,16 +10,16 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b1bb0c4f47329c24ba618dc7e0232ead, type: 3}
-  m_Name: Up2
+  m_Name: Unlock Egg
   m_EditorClassIdentifier: 
-  id: UP003
-  displayName: Up2
+  id: UP002
+  displayName: Up1
   icon: {fileID: 21300000, guid: 09ccf297199e9044781580b60fac86ac, type: 3}
   parent: {fileID: 11400000, guid: 1d7b805a50613724b8ba4104b94f564a, type: 2}
-  uiPosition: {x: -300, y: 0}
+  uiPosition: {x: 0, y: 300}
   cost: 100
   effectType: 0
-  targetId: ITM002
+  targetItem: {fileID: 11400000, guid: 5bb6c3b497c7efb448dabd44101236dc, type: 2}
   statType: 0
   statModifierType: 0
   value: 0

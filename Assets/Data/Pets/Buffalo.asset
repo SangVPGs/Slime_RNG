@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4ef7d40dd599754d83ca1d3b6e34eda, type: 3}
+  m_Name: Buffalo
+  m_EditorClassIdentifier: 
+  id: P019
+  unitName: Buffalo
+  model: {fileID: 919132149155446097, guid: 9c7459f50e471ec4e9d34f387b97c34b, type: 3}
+  baseHp: 7900
+  baseAtk: 780
+  baseAtkRange: 1.5
+  baseAtkSpeed: 1
+  baseSpeed: 6
+  baseHeal: 80
+  rarity: 3
+  icon: {fileID: 0}
+  hpGrowthMultiplier: 1.12
+  atkGrowthMultiplier: 1.08
+  healGrowthMultiplier: 1.05

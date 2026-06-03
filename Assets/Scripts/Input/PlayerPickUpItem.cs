@@ -6,8 +6,7 @@ using UnityEngine.UI;
 [RequireComponent(typeof(Collider))]
 public class PlayerPickupItem : MonoBehaviour
 {
-    [Header("Inventory")]
-    [SerializeField] private InventorySystem inventorySystem;
+    private InventorySystem inventorySystem => InventorySystem.Instance;
 
     [Header("UI")]
     [SerializeField] private Button pickupButton;
@@ -24,9 +23,6 @@ public class PlayerPickupItem : MonoBehaviour
     {
         detectorCollider = GetComponent<Collider>();
         detectorCollider.isTrigger = true;
-
-        if (inventorySystem == null)
-            inventorySystem = GetComponentInParent<InventorySystem>();
 
         if (pickupButton != null)
         {

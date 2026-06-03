@@ -19,16 +19,29 @@ public class GameManager : MonoBehaviour
         }
 
         Instance = this;
+        DontDestroyOnLoad(gameObject);
+    }
 
+    private void Start()
+    {
         LoadGold();
     }
 
     public void AddGold(int amount)
     {
-        if (amount <= 0)
+        if (amount < 0)
             return;
 
-        gold += amount;
+        float multiplier = 1f;
+
+        //if (PlayerStatContext.Instance != null)
+        //{
+        //    multiplier = PlayerStatContext.Instance.GetFinalStat(UpgradeStatType.GoldGain, 1f);
+        //}
+
+        int finalAmount = Mathf.RoundToInt(amount * multiplier);
+
+        gold += finalAmount;
 
         SaveGold();
     }
@@ -61,7 +74,7 @@ public class GameManager : MonoBehaviour
         gold = PlayerPrefs.GetInt(GoldKey, 0);
     }
 
-    public void ClearGold()
+    public void ResetGold()
     {
         gold = 0;
         SaveGold();

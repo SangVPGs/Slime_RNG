@@ -32,6 +32,31 @@ public class StatContext
         }
     }
 
+    public void RemoveStat(
+        UpgradeStatType statType,
+        StatModifierType modifierType,
+        float value)
+    {
+        if (statType == UpgradeStatType.None)
+            return;
+
+        RuntimeStat stat = GetStat(statType);
+
+        if (stat == null)
+            return;
+
+        switch (modifierType)
+        {
+            case StatModifierType.Flat:
+                stat.AddFlat(-value);
+                break;
+
+            case StatModifierType.Percent:
+                stat.AddPercent(-(value / 100f));
+                break;
+        }
+    }
+
     public RuntimeStat GetStat(UpgradeStatType statType)
     {
         if (statType == UpgradeStatType.None)

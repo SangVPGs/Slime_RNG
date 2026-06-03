@@ -10,16 +10,16 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b1bb0c4f47329c24ba618dc7e0232ead, type: 3}
-  m_Name: Up6
+  m_Name: Unlock Burger
   m_EditorClassIdentifier: 
-  id: UP007
-  displayName: Up6
+  id: UP003
+  displayName: Up2
   icon: {fileID: 21300000, guid: 97c8ff3478d4e7542bab2a32d2fde180, type: 3}
-  parent: {fileID: 11400000, guid: 12d7233b93b2e3f4e95df9bd7c0c4942, type: 2}
-  uiPosition: {x: 0, y: 600}
-  cost: 500
+  parent: {fileID: 11400000, guid: b7671e1fdcfa3654c9d994e59dab4fdd, type: 2}
+  uiPosition: {x: -300, y: 300}
+  cost: 100
   effectType: 0
-  targetId: ITM001
+  targetItem: {fileID: 11400000, guid: 7a409701068a3fa47aa413b0c95d4c9e, type: 2}
   statType: 0
   statModifierType: 0
   value: 0
