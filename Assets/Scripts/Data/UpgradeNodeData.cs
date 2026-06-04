@@ -15,6 +15,9 @@ public enum UpgradeStatType
     None,
     Luck,
 
+    MaxPartySize,
+    SlimePoolSize
+
     //ExpGain,
     //GoldGain,
 

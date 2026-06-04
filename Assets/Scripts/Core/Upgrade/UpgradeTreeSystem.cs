@@ -19,7 +19,8 @@ public class UpgradeTreeSystem : MonoBehaviour
     public IReadOnlyCollection<string> UnlockedNodeIds => unlockedNodeIds;
     public IReadOnlyList<string> UnlockedNodeOrder => unlockedNodeOrder;
 
-    public IReadOnlyList<UpgradeNodeData> AllNodes => database != null ? database.Nodes : Array.Empty<UpgradeNodeData>();
+    public IReadOnlyList<UpgradeNodeData> AllNodes =>
+        database != null ? database.Nodes : Array.Empty<UpgradeNodeData>();
 
     public static UpgradeTreeSystem Instance { get; private set; }
 
@@ -61,11 +62,13 @@ public class UpgradeTreeSystem : MonoBehaviour
 
             if (string.IsNullOrWhiteSpace(node.Id))
             {
+                Debug.LogWarning($"Upgrade node '{node.name}' has empty id.");
                 continue;
             }
 
             if (nodeMap.ContainsKey(node.Id))
             {
+                Debug.LogWarning($"Duplicate upgrade node id detected: {node.Id}");
                 continue;
             }
 
@@ -110,7 +113,7 @@ public class UpgradeTreeSystem : MonoBehaviour
         if (IsUnlocked(node))
             return false;
 
-        int finalCost = node.Cost; // GetFinalUnlockCost(node.Cost);
+        int finalCost = node.Cost;
 
         if (!CanPay(finalCost))
             return false;
@@ -120,25 +123,6 @@ public class UpgradeTreeSystem : MonoBehaviour
 
         return IsUnlocked(node.ParentId);
     }
-
-    //public int GetFinalUnlockCost(int baseCost)
-    //{
-    //    if (baseCost <= 0)
-    //        return 0;
-
-    //    float finalCost = baseCost;
-
-    //    if (PlayerStats != null)
-    //    {
-    //        float reductionPercent = PlayerStats.GetFinalStat(UpgradeStatType.UnlockGoldCostReduction,0f);
-
-    //        reductionPercent = Mathf.Clamp(reductionPercent, 0f, 95f);
-
-    //        finalCost *= 1f - reductionPercent / 100f;
-    //    }
-
-    //    return Mathf.Max(0, Mathf.RoundToInt(finalCost));
-    //}
 
     private bool CanPay(int cost)
     {
@@ -173,7 +157,7 @@ public class UpgradeTreeSystem : MonoBehaviour
         if (!CanUnlock(node))
             return false;
 
-        int finalCost = node.Cost; // GetFinalUnlockCost(node.Cost);
+        int finalCost = node.Cost;
 
         if (!Pay(finalCost))
             return false;
@@ -191,7 +175,6 @@ public class UpgradeTreeSystem : MonoBehaviour
         Debug.Log($"Upgrade unlocked: {node.DisplayName} (ID: {node.Id})");
 
         OnNodeUnlocked?.Invoke(node);
-        OnTreeChanged?.Invoke();
 
         return true;
     }
@@ -222,6 +205,9 @@ public class UpgradeTreeSystem : MonoBehaviour
                     break;
             }
         }
+
+        if (PartySystem.Instance != null)
+            PartySystem.Instance.RefreshAfterUpgradeChanged();
 
         OnTreeChanged?.Invoke();
     }
@@ -270,7 +256,9 @@ public class UpgradeTreeSystem : MonoBehaviour
 
             if (!nodeMap.ContainsKey(nodeId))
             {
-                Debug.LogWarning($"Saved upgrade id not found in current database: {nodeId}");
+                Debug.LogWarning(
+                    $"Saved upgrade id not found in current database: {nodeId}"
+                );
 
                 continue;
             }
@@ -289,7 +277,20 @@ public class UpgradeTreeSystem : MonoBehaviour
         PlayerPrefs.Save();
 
         RebuildUpgradeEffects();
-        OnTreeChanged?.Invoke();
+    }
+
+    [ContextMenu("Debug Upgrade Stats")]
+    private void DebugUpgradeStats()
+    {
+        if (PlayerStats == null)
+        {
+            Debug.LogWarning("PlayerStatContext is missing.");
+            return;
+        }
+
+        Debug.Log($"Luck: {PlayerStats.GetFinalStat(UpgradeStatType.Luck, 1f)}");
+        Debug.Log($"Max Party Size: {PlayerStats.GetFinalStat(UpgradeStatType.MaxPartySize, 4f)}");
+        Debug.Log($"Slime Pool Size: {PlayerStats.GetFinalStat(UpgradeStatType.SlimePoolSize, 5f)}");
     }
 
     [Serializable]

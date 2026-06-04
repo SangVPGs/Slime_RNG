@@ -16,11 +16,11 @@ MonoBehaviour:
   unitName: Fire Slime
   model: {fileID: 919132149155446097, guid: a740e81291a5c7d4fab867b048e98f03, type: 3}
   baseHp: 1500
-  baseAtk: 150
+  baseAtk: 200
   baseAtkRange: 3
   baseAtkSpeed: 1
   baseSpeed: 3.5
   baseGoldDrop: 15
   hpPerLevel: 299
-  atkPerLevel: 20
+  atkPerLevel: 60
   goldDropPerLevel: 10

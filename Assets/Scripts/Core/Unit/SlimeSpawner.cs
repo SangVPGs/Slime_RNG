@@ -54,11 +54,15 @@ public class SlimeSpawner : MonoBehaviour
     private float outOfRangeTimer;
     private bool canStartSpawning;
 
+    public int CurrentPoolCount => slimePool.Count;
+    public int FinalPoolSize => GetFinalPoolSize();
+
+    private UpgradeTreeSystem upgradeTreeSystem;
+
     private void Awake()
     {
         SetupSingleton();
         FindPlayerIfNeeded();
-        CreatePool();
     }
 
     private void Start()
@@ -66,6 +70,8 @@ public class SlimeSpawner : MonoBehaviour
         spawnTimer = initialSpawnDelay;
         outOfRangeTimer = outOfRangeCheckInterval;
         canStartSpawning = false;
+
+        RefreshPoolSize();
     }
 
     private void OnDestroy()
@@ -93,6 +99,49 @@ public class SlimeSpawner : MonoBehaviour
         }
 
         Instance = this;
+    }
+
+    private int GetFinalPoolSize()
+    {
+        int finalSize = poolSize;
+
+        if (PlayerStatContext.Instance != null)
+        {
+            finalSize = Mathf.RoundToInt(
+                PlayerStatContext.Instance.GetFinalStat(
+                    UpgradeStatType.SlimePoolSize,
+                    poolSize
+                )
+            );
+        }
+
+        return Mathf.Max(1, finalSize);
+    }
+
+    public void RefreshPoolSize()
+    {
+        if (slimePrefab == null)
+        {
+            Debug.LogError("Slime prefab missing.");
+            return;
+        }
+
+        int targetSize = GetFinalPoolSize();
+
+        while (slimePool.Count < targetSize)
+        {
+            SlimeUnit slime = Instantiate(
+                slimePrefab,
+                transform.position,
+                Quaternion.identity
+            );
+
+            slime.SetSpawner(this);
+            slime.gameObject.SetActive(false);
+
+            slimePool.Add(slime);
+            nextOutOfRangeRespawnTime[slime] = 0f;
+        }
     }
 
     public void SetContext(SlimeSpawnContext context)
@@ -124,30 +173,6 @@ public class SlimeSpawner : MonoBehaviour
 
         if (playerObject != null)
             player = playerObject.transform;
-    }
-
-    private void CreatePool()
-    {
-        if (slimePrefab == null)
-        {
-            Debug.LogError("Slime prefab missing.");
-            return;
-        }
-
-        for (int i = 0; i < poolSize; i++)
-        {
-            SlimeUnit slime = Instantiate(
-                slimePrefab,
-                transform.position,
-                Quaternion.identity
-            );
-
-            slime.SetSpawner(this);
-            slime.gameObject.SetActive(false);
-
-            slimePool.Add(slime);
-            nextOutOfRangeRespawnTime[slime] = 0f;
-        }
     }
 
     private void HandleSpawn()
@@ -201,13 +226,16 @@ public class SlimeSpawner : MonoBehaviour
             if (!CanForceRespawn(slime))
                 continue;
 
-            float zDistance = Mathf.Abs(slime.transform.position.z - player.position.z);
+            float zDistance = Mathf.Abs(
+                slime.transform.position.z - player.position.z
+            );
 
             if (zDistance <= maxZDistanceFromPlayer)
                 continue;
 
             RespawnSlime(slime);
-            nextOutOfRangeRespawnTime[slime] = Time.time + outOfRangeRespawnCooldown;
+            nextOutOfRangeRespawnTime[slime] =
+                Time.time + outOfRangeRespawnCooldown;
         }
     }
 
@@ -230,6 +258,8 @@ public class SlimeSpawner : MonoBehaviour
 
     private SlimeUnit GetInactiveSlime()
     {
+        RefreshPoolSize();
+
         foreach (SlimeUnit slime in slimePool)
         {
             if (slime == null)
@@ -343,10 +373,17 @@ public class SlimeSpawner : MonoBehaviour
 #if UNITY_EDITOR
     private void OnDrawGizmosSelected()
     {
-        Vector3 center = new Vector3(transform.position.x, spawnY, transform.position.z);
+        Vector3 center = new(
+            transform.position.x,
+            spawnY,
+            transform.position.z
+        );
 
         Gizmos.color = Color.green;
-        Gizmos.DrawWireCube(center, new Vector3(areaSize.x, 0.1f, areaSize.y));
+        Gizmos.DrawWireCube(
+            center,
+            new Vector3(areaSize.x, 0.1f, areaSize.y)
+        );
 
         Gizmos.color = Color.cyan;
         Gizmos.DrawWireCube(
@@ -358,13 +395,13 @@ public class SlimeSpawner : MonoBehaviour
         {
             Gizmos.color = Color.red;
 
-            Vector3 startLineCenter = new Vector3(
+            Vector3 startLineCenter = new(
                 transform.position.x,
                 spawnY + 0.05f,
                 firstMapStartZ
             );
 
-            Vector3 startLineSize = new Vector3(
+            Vector3 startLineSize = new(
                 areaSize.x,
                 0.1f,
                 0.2f

@@ -64,20 +64,18 @@ public class InventorySystem : MonoBehaviour
         return true;
     }
 
-    public bool SetPetInParty(PetInventoryEntry entry, bool isInParty)
+    public bool HasPet(PetUnitData petData)
     {
-        if (entry == null)
+        if (petData == null || Data == null || Data.Pets == null)
             return false;
 
-        bool success = data.SetPetInParty(entry, isInParty);
+        foreach (PetInventoryEntry entry in Data.Pets)
+        {
+            if (entry.petData == petData)
+                return true;
+        }
 
-        if (!success)
-            return false;
-
-        Save();
-        OnInventoryChanged?.Invoke();
-
-        return true;
+        return false;
     }
 
     public bool SetPetInPartyWithoutNotify(PetInventoryEntry entry, bool isInParty)
@@ -86,53 +84,6 @@ public class InventorySystem : MonoBehaviour
             return false;
 
         return data.SetPetInParty(entry, isInParty);
-    }
-
-    public bool SetPetLevel(PetInventoryEntry entry, int level)
-    {
-        if (entry == null || entry.petData == null)
-            return false;
-
-        int newLevel = Mathf.Clamp(level, 1, entry.petData.maxLevel);
-
-        if (entry.level == newLevel)
-            return false;
-
-        entry.level = newLevel;
-        entry.exp = 0;
-
-        Save();
-        OnInventoryChanged?.Invoke();
-
-        return true;
-    }
-
-    public bool AddPetExp(PetInventoryEntry entry, int expAmount)
-    {
-        if (entry == null || entry.petData == null)
-            return false;
-
-        if (expAmount <= 0)
-            return false;
-
-        if (entry.level >= entry.petData.maxLevel)
-            return false;
-
-        data.AddPetExp(
-            entry,
-            expAmount,
-            maxExpGrowthMultiplier
-        );
-
-        Save();
-        OnInventoryChanged?.Invoke();
-
-        return true;
-    }
-
-    public bool IsPetInParty(PetInventoryEntry entry)
-    {
-        return data.IsPetInParty(entry);
     }
 
     #endregion
@@ -145,22 +96,6 @@ public class InventorySystem : MonoBehaviour
             return false;
 
         bool success = data.AddItem(itemData, amount);
-
-        if (!success)
-            return false;
-
-        Save();
-        OnInventoryChanged?.Invoke();
-
-        return true;
-    }
-
-    public bool RemoveItem(ItemData itemData, int amount = 1)
-    {
-        if (itemData == null || amount <= 0)
-            return false;
-
-        bool success = data.RemoveItem(itemData.Id, amount);
 
         if (!success)
             return false;
@@ -248,14 +183,6 @@ public class InventorySystem : MonoBehaviour
             default:
                 return false;
         }
-    }
-
-    public bool HasItem(ItemData itemData, int amount = 1)
-    {
-        if (itemData == null)
-            return false;
-
-        return data.HasItem(itemData.Id, amount);
     }
 
     #endregion
@@ -537,16 +464,6 @@ public class InventorySystem : MonoBehaviour
                 items.Remove(entry);
 
             return true;
-        }
-
-        public bool HasItem(string itemId, int amount)
-        {
-            if (string.IsNullOrEmpty(itemId) || amount <= 0)
-                return false;
-
-            ItemInventoryEntry entry = GetEntryByItemId(itemId);
-
-            return entry != null && entry.amount >= amount;
         }
 
         public ItemInventoryEntry GetEntryByItemId(string itemId)

@@ -2,6 +2,12 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+public enum UIPanelMode
+{
+    Screen,
+    Overlay
+}
+
 public class UIManager : MonoBehaviour
 {
     public static UIManager Instance { get; private set; }
@@ -12,7 +18,13 @@ public class UIManager : MonoBehaviour
         public string id;
         public GameObject panel;
         public CanvasGroup canvasGroup;
+        public UIPanelMode mode = UIPanelMode.Screen;
     }
+
+    [Header("Main Panel")]
+    [SerializeField] private GameObject mainPanel;
+    [SerializeField] private CanvasGroup mainCanvasGroup;
+    [SerializeField] private bool showMainOnStart = true;
 
     [Header("UI Panels")]
     [SerializeField] private List<UIEntry> uiEntries = new();
@@ -30,7 +42,6 @@ public class UIManager : MonoBehaviour
         }
 
         Instance = this;
-
         Initialize();
     }
 
@@ -38,6 +49,33 @@ public class UIManager : MonoBehaviour
     {
         uiDict.Clear();
 
+        InitializeMainPanel();
+        InitializePanels();
+
+        if (showMainOnStart)
+            ShowMainPanel();
+        else
+            HideMainPanel();
+    }
+
+    private void InitializeMainPanel()
+    {
+        if (mainPanel == null)
+            return;
+
+        if (mainCanvasGroup == null)
+        {
+            mainCanvasGroup = mainPanel.GetComponent<CanvasGroup>();
+
+            if (mainCanvasGroup == null)
+                mainCanvasGroup = mainPanel.AddComponent<CanvasGroup>();
+        }
+
+        mainPanel.SetActive(true);
+    }
+
+    private void InitializePanels()
+    {
         foreach (UIEntry entry in uiEntries)
         {
             if (entry == null)
@@ -54,9 +92,7 @@ public class UIManager : MonoBehaviour
                 entry.canvasGroup = entry.panel.GetComponent<CanvasGroup>();
 
                 if (entry.canvasGroup == null)
-                {
                     entry.canvasGroup = entry.panel.AddComponent<CanvasGroup>();
-                }
             }
 
             if (uiDict.ContainsKey(entry.id))
@@ -67,9 +103,7 @@ public class UIManager : MonoBehaviour
             entry.panel.SetActive(true);
 
             if (hideAllOnStart)
-            {
                 SetVisible(entry, false);
-            }
         }
     }
 
@@ -77,6 +111,9 @@ public class UIManager : MonoBehaviour
     {
         if (!uiDict.TryGetValue(id, out UIEntry entry))
             return;
+
+        if (entry.mode == UIPanelMode.Screen)
+            HideMainPanel();
 
         SetVisible(entry, true);
     }
@@ -87,6 +124,9 @@ public class UIManager : MonoBehaviour
             return;
 
         SetVisible(entry, false);
+
+        if (entry.mode == UIPanelMode.Screen && !HasAnyScreenPanelVisible())
+            ShowMainPanel();
     }
 
     public void Toggle(string id)
@@ -94,23 +134,62 @@ public class UIManager : MonoBehaviour
         if (!uiDict.TryGetValue(id, out UIEntry entry))
             return;
 
-        bool isVisible = entry.canvasGroup.alpha > 0.5f;
+        if (IsVisible(entry))
+            Hide(id);
+        else
+            Show(id);
+    }
 
-        SetVisible(entry, !isVisible);
+    private bool HasAnyScreenPanelVisible()
+    {
+        foreach (UIEntry entry in uiDict.Values)
+        {
+            if (entry.mode != UIPanelMode.Screen)
+                continue;
+
+            if (IsVisible(entry))
+                return true;
+        }
+
+        return false;
+    }
+
+    private void ShowMainPanel()
+    {
+        if (mainPanel == null || mainCanvasGroup == null)
+            return;
+
+        SetVisible(mainPanel, mainCanvasGroup, true);
+    }
+
+    private void HideMainPanel()
+    {
+        if (mainPanel == null || mainCanvasGroup == null)
+            return;
+
+        SetVisible(mainPanel, mainCanvasGroup, false);
+    }
+
+    private bool IsVisible(UIEntry entry)
+    {
+        return entry.canvasGroup != null && entry.canvasGroup.alpha > 0.5f;
     }
 
     private void SetVisible(UIEntry entry, bool visible)
     {
-        entry.panel.SetActive(true);
+        if (entry == null || entry.panel == null || entry.canvasGroup == null)
+            return;
 
-        entry.canvasGroup.alpha = visible ? 1f : 0f;
-        entry.canvasGroup.interactable = visible;
-        entry.canvasGroup.blocksRaycasts = visible;
+        SetVisible(entry.panel, entry.canvasGroup, visible);
     }
 
-    public void Button_Toggle(string id)
+    private void SetVisible(GameObject panel, CanvasGroup canvasGroup, bool visible)
     {
-        Toggle(id);
+        panel.SetActive(true);
+
+        canvasGroup.alpha = visible ? 1f : 0f;
+        canvasGroup.interactable = visible;
+        canvasGroup.blocksRaycasts = visible;
     }
 
     public void Button_Show(string id)
@@ -121,5 +200,10 @@ public class UIManager : MonoBehaviour
     public void Button_Hide(string id)
     {
         Hide(id);
+    }
+
+    public void Button_Toggle(string id)
+    {
+        Toggle(id);
     }
 }

@@ -14,19 +14,24 @@ public class MapChunk : MonoBehaviour
     public Transform EndPoint => endPoint;
     public Transform CheckPoint => checkPoint;
 
-    public int Level => data != null ? data.level : 0;
+    public int Level => runtimeLevel;
+    public int UnlockCost => unlockCost;
 
     public IReadOnlyList<SlimeUnitData> Enemies =>
         data != null ? data.enemies : null;
 
     private MapData data;
+    private int runtimeLevel;
+    private int unlockCost;
     private bool isUnlocked;
 
-    public void Initialize(MapData mapData)
+    public void Initialize(MapData mapData, int level, int cost)
     {
         data = mapData;
+        runtimeLevel = level;
+        unlockCost = cost;
 
-        gameObject.name = $"Map_Level_{Level}";
+        gameObject.name = $"Map_Level_{runtimeLevel}";
 
         SpawnModel();
         LoadUnlockState();
@@ -47,7 +52,7 @@ public class MapChunk : MonoBehaviour
 
     private void LoadUnlockState()
     {
-        isUnlocked = MapUnlockSave.IsUnlocked(Level);
+        isUnlocked = MapUnlockSave.IsUnlocked(runtimeLevel);
     }
 
     private void SetupUnlockUI()
@@ -55,7 +60,7 @@ public class MapChunk : MonoBehaviour
         if (unlockUI == null)
             return;
 
-        unlockUI.Initialize(this, data.unlockCost);
+        unlockUI.Initialize(this, unlockCost);
         unlockUI.gameObject.SetActive(!isUnlocked);
     }
 
@@ -67,11 +72,10 @@ public class MapChunk : MonoBehaviour
         if (GameManager.Instance == null)
             return false;
 
-        if (!GameManager.Instance.SpendGold(data.unlockCost))
+        if (!GameManager.Instance.SpendGold(unlockCost))
             return false;
 
         Unlock();
-
         return true;
     }
 
@@ -79,7 +83,7 @@ public class MapChunk : MonoBehaviour
     {
         isUnlocked = true;
 
-        MapUnlockSave.SaveUnlocked(Level);
+        MapUnlockSave.SaveUnlocked(runtimeLevel);
 
         if (unlockUI != null)
             unlockUI.gameObject.SetActive(false);

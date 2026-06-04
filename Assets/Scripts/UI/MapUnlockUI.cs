@@ -4,6 +4,7 @@ using UnityEngine.UI;
 
 public class MapUnlockUI : MonoBehaviour
 {
+    [Header("UI")]
     [SerializeField] private Button unlockButton;
     [SerializeField] private TMP_Text costText;
 

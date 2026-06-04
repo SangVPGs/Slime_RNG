@@ -15,6 +15,6 @@ MonoBehaviour:
   level: 5
   mapPrefab: {fileID: 6807517083651868280, guid: da7b0eb077240a8478dbaa7d69087c04,
     type: 3}
-  unlockCost: 5000
   enemies:
+  - {fileID: 11400000, guid: 7a8bffc04bb328148adc995921df2d4d, type: 2}
   - {fileID: 11400000, guid: a4e95ef74792c544ca7dca15b5bcb618, type: 2}

@@ -261,6 +261,7 @@ public class GachaController : MonoBehaviour
 
         gachaMiniUI?.ClearResult();
         gachaUI?.SetHideButtonVisible(showHideButton);
+        gachaUI?.RefreshRate();
     }
 
     private void ShowMiniPanel()

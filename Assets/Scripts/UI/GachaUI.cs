@@ -7,6 +7,9 @@ public class GachaUI : MonoBehaviour
     [Header("Result")]
     [SerializeField] private GachaResultView resultView;
 
+    [Header("Rate")]
+    [SerializeField] private TMP_Text rateText;
+
     [Header("Buttons")]
     [SerializeField] private GameObject hideButton;
 
@@ -19,6 +22,25 @@ public class GachaUI : MonoBehaviour
     [SerializeField] private Color rollingColor = Color.green;
     [SerializeField] private Color normalTextColor = Color.black;
     [SerializeField] private Color activeTextColor = Color.white;
+
+    private void OnEnable()
+    {
+        RefreshRate();
+    }
+
+    public void RefreshRate()
+    {
+        if (rateText == null)
+            return;
+
+        if (GachaSystem.Instance == null)
+        {
+            rateText.text = "Rate: N/A";
+            return;
+        }
+
+        rateText.text = GachaSystem.Instance.GetCurrentRateText();
+    }
 
     public void ShowRollingPet(PetUnitData pet)
     {

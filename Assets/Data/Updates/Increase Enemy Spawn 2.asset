@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b1bb0c4f47329c24ba618dc7e0232ead, type: 3}
+  m_Name: Increase Enemy Spawn 2
+  m_EditorClassIdentifier: 
+  id: UP011
+  displayName: Increase Enemy Spawn 2
+  icon: {fileID: 21300000, guid: bb168b723ea3145e6a3849c0e713f212, type: 3}
+  parent: {fileID: 11400000, guid: 3e8da2a7c9fb82b49b0698a4b9eff926, type: 2}
+  uiPosition: {x: 600, y: 0}
+  cost: 10000
+  effectType: 1
+  targetItem: {fileID: 0}
+  statType: 3
+  statModifierType: 0
+  value: 1

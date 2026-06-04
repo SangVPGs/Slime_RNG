@@ -6,12 +6,12 @@ using UnityEngine.UI;
 
 public class PetInventoryUI : MonoBehaviour
 {
-    InventorySystem inventorySystem => InventorySystem.Instance;
-    private PartySystem partySystem => PartySystem.Instance;
+    private InventorySystem inventorySystem;
+    private PartySystem partySystem;
 
     [Header("UI")]
     [SerializeField] private Transform contentParent;
-    [SerializeField] private PetUIItem petItemPrefab;
+    [SerializeField] private PetInventoryUIItem petItemPrefab;
 
     [Header("UI Text")]
     [SerializeField] private TMP_Text sortTypeText;
@@ -30,6 +30,8 @@ public class PetInventoryUI : MonoBehaviour
 
     private void OnEnable()
     {
+        ResolveSystems();
+
         if (inventorySystem != null)
             inventorySystem.OnInventoryChanged += Refresh;
 
@@ -49,6 +51,25 @@ public class PetInventoryUI : MonoBehaviour
     private void Start()
     {
         Refresh();
+    }
+
+    private void ResolveSystems()
+    {
+        if (partySystem == null)
+        {
+            partySystem = PartySystem.Instance;
+
+            if (partySystem == null)
+                partySystem = FindFirstObjectByType<PartySystem>();
+        }
+
+        if (inventorySystem == null)
+        {
+            inventorySystem = InventorySystem.Instance;
+
+            if (inventorySystem == null)
+                inventorySystem = FindFirstObjectByType<InventorySystem>();
+        }
     }
 
     public void ToggleSortDirection()
@@ -154,7 +175,7 @@ public class PetInventoryUI : MonoBehaviour
             if (entry == null || entry.petData == null)
                 continue;
 
-            PetUIItem item = Instantiate(petItemPrefab, contentParent);
+            PetInventoryUIItem item = Instantiate(petItemPrefab, contentParent);
 
             item.SetupPetInventory(
                 entry,

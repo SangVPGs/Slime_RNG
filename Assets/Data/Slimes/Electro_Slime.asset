@@ -22,5 +22,5 @@ MonoBehaviour:
   baseSpeed: 3.5
   baseGoldDrop: 20
   hpPerLevel: 399
-  atkPerLevel: 20
+  atkPerLevel: 80
   goldDropPerLevel: 10

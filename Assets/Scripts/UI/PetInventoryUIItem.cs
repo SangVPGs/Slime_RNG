@@ -3,7 +3,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class PetUIItem : MonoBehaviour
+public class PetInventoryUIItem : MonoBehaviour
 {
     [Header("UI")]
     [SerializeField] private Image iconImage;
@@ -48,9 +48,9 @@ public class PetUIItem : MonoBehaviour
     }
 
     public void SetupUseItem(
-    InventorySystem.PetInventoryEntry partyEntry,
-    Action<InventorySystem.PetInventoryEntry> clickCallback,
-    bool showButton)
+        InventorySystem.PetInventoryEntry partyEntry,
+        Action<InventorySystem.PetInventoryEntry> clickCallback,
+        bool showButton)
     {
         SetupInfo(partyEntry);
 
@@ -59,44 +59,23 @@ public class PetUIItem : MonoBehaviour
         SetupButton(showButton, "Use", addColor);
     }
 
-    public void SetupIndex(PetUnitData petData)
-    {
-        entry = null;
-        onClicked = null;
-
-        if (petData == null)
-            return;
-
-        if (iconImage != null)
-            iconImage.sprite = petData.icon;
-
-        if (nameText != null)
-        {
-            nameText.text = petData.unitName;
-            nameText.color = GetRarityColor(petData.rarity);
-        }
-
-        if (levelText != null)
-            levelText.text = string.Empty;
-
-        if (combatPowerText != null)
-            combatPowerText.text = string.Empty;
-
-        if (button != null)
-            button.gameObject.SetActive(false);
-    }
-
     private void SetupInfo(InventorySystem.PetInventoryEntry inventoryEntry)
     {
         entry = inventoryEntry;
 
         if (entry == null || entry.petData == null)
+        {
+            ClearInfo();
             return;
+        }
 
         PetUnitData petData = entry.petData;
 
         if (iconImage != null)
+        {
             iconImage.sprite = petData.icon;
+            iconImage.color = Color.white;
+        }
 
         if (nameText != null)
         {
@@ -107,11 +86,31 @@ public class PetUIItem : MonoBehaviour
         if (levelText != null)
             levelText.text = $"Lv.{entry.level}";
 
-        if(combatPowerText != null)
+        if (combatPowerText != null)
         {
             long cp = PetUnit.CalculateCombatPower(entry.petData, entry.level);
             combatPowerText.text = $"CP {cp}";
         }
+    }
+
+    private void ClearInfo()
+    {
+        if (iconImage != null)
+        {
+            iconImage.sprite = null;
+            iconImage.color = Color.white;
+        }
+
+        if (nameText != null)
+            nameText.text = string.Empty;
+
+        if (levelText != null)
+            levelText.text = string.Empty;
+
+        if (combatPowerText != null)
+            combatPowerText.text = string.Empty;
+
+        SetupButton(false, string.Empty, Color.white);
     }
 
     private void SetupButton(bool visible, string text, Color color)
@@ -136,6 +135,9 @@ public class PetUIItem : MonoBehaviour
 
     private void OnButtonClicked()
     {
+        if (entry == null)
+            return;
+
         onClicked?.Invoke(entry);
     }
 

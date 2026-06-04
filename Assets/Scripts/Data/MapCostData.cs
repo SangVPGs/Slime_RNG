@@ -1,0 +1,50 @@
+﻿using System;
+using System.Collections.Generic;
+using UnityEngine;
+
+[CreateAssetMenu(menuName = "Game/Database/Map Cost Data")]
+public class MapCostData : ScriptableObject
+{
+    [Serializable]
+    private class CostEntry
+    {
+        public int level;
+        public int cost;
+    }
+
+    [SerializeField] private int defaultCost = 100;
+    [SerializeField] private float overflowMultiplier = 2.5f;
+    [SerializeField] private List<CostEntry> costs = new();
+
+    public int GetCost(int level)
+    {
+        if (level <= 0)
+            return 0;
+
+        CostEntry exactEntry = null;
+        CostEntry highestEntry = null;
+
+        foreach (CostEntry entry in costs)
+        {
+            if (entry == null)
+                continue;
+
+            if (entry.level == level)
+                exactEntry = entry;
+
+            if (highestEntry == null || entry.level > highestEntry.level)
+                highestEntry = entry;
+        }
+
+        if (exactEntry != null)
+            return Mathf.Max(0, exactEntry.cost);
+
+        if (highestEntry == null)
+            return defaultCost;
+
+        if (level > highestEntry.level)
+            return Mathf.RoundToInt(highestEntry.cost * overflowMultiplier);
+
+        return defaultCost;
+    }
+}

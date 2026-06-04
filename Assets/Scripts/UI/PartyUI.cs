@@ -1,19 +1,23 @@
+using TMPro;
 using UnityEngine;
 
 public class PartyUI : MonoBehaviour
 {
-    private PartySystem partySystem => PartySystem.Instance;
-    private InventorySystem inventorySystem => InventorySystem.Instance;
+    private PartySystem partySystem;
+    private InventorySystem inventorySystem;
 
     [Header("Inventory UI")]
     [SerializeField] private InventoryUI inventoryUI;
 
     [Header("UI")]
     [SerializeField] private Transform contentParent;
-    [SerializeField] private PetUIItem petItemPrefab;
+    [SerializeField] private PetInventoryUIItem petItemPrefab;
+    [SerializeField] private TMP_Text partyCountText;
 
     private void OnEnable()
     {
+        ResolveSystems();
+
         if (partySystem != null)
             partySystem.OnPartyChanged += ShowParty;
 
@@ -47,15 +51,33 @@ public class PartyUI : MonoBehaviour
         }
     }
 
-    private void Start()
+    private void ResolveSystems()
     {
-        ShowParty();
+        if (partySystem == null)
+        {
+            partySystem = PartySystem.Instance;
+
+            if (partySystem == null)
+                partySystem = FindFirstObjectByType<PartySystem>();
+        }
+
+        if (inventorySystem == null)
+        {
+            inventorySystem = InventorySystem.Instance;
+
+            if (inventorySystem == null)
+                inventorySystem = FindFirstObjectByType<InventorySystem>();
+        }
     }
 
     public void ShowParty()
     {
+        ResolveSystems();
+
         if (partySystem == null || partySystem.Data == null)
             return;
+
+        UpdatePartyCountText();
 
         ClearOldItems();
 
@@ -64,14 +86,14 @@ public class PartyUI : MonoBehaviour
             if (entry == null || entry.petData == null)
                 continue;
 
-            PetUIItem item = Instantiate(petItemPrefab, contentParent);
+            PetInventoryUIItem item = Instantiate(petItemPrefab, contentParent);
 
             SetupPetUIItem(item, entry);
         }
     }
 
     private void SetupPetUIItem(
-        PetUIItem item,
+        PetInventoryUIItem item,
         InventorySystem.PetInventoryEntry entry)
     {
         if (item == null || entry == null)
@@ -107,6 +129,21 @@ public class PartyUI : MonoBehaviour
                 );
             }
         }
+    }
+
+    private void UpdatePartyCountText()
+    {
+        if (partyCountText == null ||
+            partySystem == null ||
+            partySystem.Data == null)
+        {
+            return;
+        }
+
+        int currentCount = partySystem.Data.Pets.Count;
+        int maxCount = partySystem.Data.MaxPartySize;
+
+        partyCountText.text = $"{currentCount}/{maxCount}";
     }
 
     private void OnPartyPetClicked(InventorySystem.PetInventoryEntry entry)

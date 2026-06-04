@@ -1,5 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 public class GachaSystem : MonoBehaviour
@@ -16,6 +15,7 @@ public class GachaSystem : MonoBehaviour
     public IReadOnlyList<PetUnitData> Pets => petDatabase != null ? petDatabase.Pets : null;
 
     public static GachaSystem Instance { get; private set; }
+    public float CurrentLuck => GetCurrentLuck();
 
     private void Awake()
     {
@@ -104,6 +104,43 @@ public class GachaSystem : MonoBehaviour
             return 1f;
 
         return PlayerStatContext.Instance.GetFinalStat(UpgradeStatType.Luck,1f);
+    }
+
+    public string GetCurrentRateText()
+    {
+        if (rarityWeights == null || rarityWeights.Count == 0)
+            return "Rate: N/A";
+
+        float luck = GetCurrentLuck();
+        float totalWeight = 0f;
+
+        foreach (RarityWeightConfig config in rarityWeights)
+        {
+            if (config == null)
+                continue;
+
+            totalWeight += GetAdjustedWeight(config, luck);
+        }
+
+        if (totalWeight <= 0f)
+            return "Rate: N/A";
+
+        System.Text.StringBuilder builder = new();
+
+        builder.AppendLine($"Luck: {luck:0.###}");
+
+        foreach (RarityWeightConfig config in rarityWeights)
+        {
+            if (config == null)
+                continue;
+
+            float weight = GetAdjustedWeight(config, luck);
+            float percent = weight / totalWeight * 100f;
+
+            builder.AppendLine($"{config.rarity}: {percent:0.###}%");
+        }
+
+        return builder.ToString();
     }
 
     private float GetAdjustedWeight(RarityWeightConfig config, float luck)

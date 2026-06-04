@@ -5,39 +5,70 @@ public class PetListUI : MonoBehaviour
 {
     [Header("Data")]
     [SerializeField] private PetDatabase database;
+    private InventorySystem inventorySystem => InventorySystem.Instance;
 
     [Header("UI")]
     [SerializeField] private Transform contentParent;
-    [SerializeField] private PetUIItem petItemPrefab;
+    [SerializeField] private PetListUIItem petItemPrefab;
 
-    private List<PetUnitData> allPet = new();
+    [Header("Detail UI")]
+    [SerializeField] private PetDetailUI petDetailUI;
 
-    private void Start()
+    private List<PetUnitData> allPets = new();
+
+    private void OnEnable()
     {
-        SortPet();
+        if (inventorySystem != null)
+            inventorySystem.OnInventoryChanged += Refresh;
+
+        Refresh();
+    }
+
+    private void OnDisable()
+    {
+        if (inventorySystem != null)
+            inventorySystem.OnInventoryChanged -= Refresh;
+    }
+
+    private void Refresh()
+    {
+        SortPets();
+        ShowPets();
+    }
+
+    private void SortPets()
+    {
+        if (database == null)
+            return;
+
+        allPets = new List<PetUnitData>(database.Pets);
+
+        allPets.Sort((a, b) =>
+        {
+            return a.rarity.CompareTo(b.rarity);
+        });
     }
 
     private void ShowPets()
     {
         ClearOldItems();
 
-        foreach (PetUnitData pet in allPet)
+        foreach (PetUnitData pet in allPets)
         {
-            PetUIItem item = Instantiate(petItemPrefab, contentParent);
-            item.SetupIndex(pet);
+            PetListUIItem item = Instantiate(petItemPrefab, contentParent);
+
+            bool isOwned = inventorySystem != null && inventorySystem.HasPet(pet);
+
+            item.Setup(pet, isOwned, ShowPetDetail);
         }
     }
 
-    private void SortPet()
+    private void ShowPetDetail(PetUnitData petData, bool isOwned)
     {
-        allPet = new List<PetUnitData>(database.Pets);
+        if (petDetailUI == null)
+            return;
 
-        allPet.Sort((a, b) =>
-        {
-            return a.rarity.CompareTo(b.rarity);
-        });
-
-        ShowPets();
+        petDetailUI.Show(petData, isOwned);
     }
 
     private void ClearOldItems()
