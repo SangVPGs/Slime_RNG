@@ -19,8 +19,7 @@ public class UpgradeTreeSystem : MonoBehaviour
     public IReadOnlyCollection<string> UnlockedNodeIds => unlockedNodeIds;
     public IReadOnlyList<string> UnlockedNodeOrder => unlockedNodeOrder;
 
-    public IReadOnlyList<UpgradeNodeData> AllNodes =>
-        database != null ? database.Nodes : Array.Empty<UpgradeNodeData>();
+    public IReadOnlyList<UpgradeNodeData> AllNodes => database != null ? database.Nodes : Array.Empty<UpgradeNodeData>();
 
     public static UpgradeTreeSystem Instance { get; private set; }
 
@@ -36,10 +35,7 @@ public class UpgradeTreeSystem : MonoBehaviour
         }
 
         Instance = this;
-    }
 
-    private void Start()
-    {
         BuildNodeMap();
         Load();
         RebuildUpgradeEffects();
@@ -85,6 +81,36 @@ public class UpgradeTreeSystem : MonoBehaviour
         return node;
     }
 
+    public List<UpgradeNodeData> GetChildren(string parentId)
+    {
+        List<UpgradeNodeData> children = new();
+
+        if (string.IsNullOrWhiteSpace(parentId))
+            return children;
+
+        foreach (UpgradeNodeData node in AllNodes)
+        {
+            if (node == null)
+                continue;
+
+            if (node.Parent == null)
+                continue;
+
+            if (node.ParentId == parentId)
+                children.Add(node);
+        }
+
+        return children;
+    }
+
+    public List<UpgradeNodeData> GetChildren(UpgradeNodeData parent)
+    {
+        if (parent == null)
+            return new List<UpgradeNodeData>();
+
+        return GetChildren(parent.Id);
+    }
+
     public bool IsUnlocked(string nodeId)
     {
         return !string.IsNullOrWhiteSpace(nodeId) &&
@@ -113,7 +139,7 @@ public class UpgradeTreeSystem : MonoBehaviour
         if (IsUnlocked(node))
             return false;
 
-        int finalCost = node.Cost;
+        long finalCost = node.Cost;
 
         if (!CanPay(finalCost))
             return false;
@@ -124,7 +150,7 @@ public class UpgradeTreeSystem : MonoBehaviour
         return IsUnlocked(node.ParentId);
     }
 
-    private bool CanPay(int cost)
+    private bool CanPay(long cost)
     {
         if (cost <= 0)
             return true;
@@ -138,7 +164,7 @@ public class UpgradeTreeSystem : MonoBehaviour
         return GameManager.Instance.HasEnoughGold(cost);
     }
 
-    private bool Pay(int cost)
+    private bool Pay(long cost)
     {
         if (cost <= 0)
             return true;
@@ -157,7 +183,7 @@ public class UpgradeTreeSystem : MonoBehaviour
         if (!CanUnlock(node))
             return false;
 
-        int finalCost = node.Cost;
+        long finalCost = node.Cost;
 
         if (!Pay(finalCost))
             return false;
@@ -177,6 +203,24 @@ public class UpgradeTreeSystem : MonoBehaviour
         OnNodeUnlocked?.Invoke(node);
 
         return true;
+    }
+
+    public int GetUnlockableNodeCount()
+    {
+        int count = 0;
+
+        foreach (UpgradeNodeData node in AllNodes)
+        {
+            if (CanUnlock(node))
+                count++;
+        }
+
+        return count;
+    }
+
+    public bool HasUnlockableNode()
+    {
+        return GetUnlockableNodeCount() > 0;
     }
 
     private void RebuildUpgradeEffects()

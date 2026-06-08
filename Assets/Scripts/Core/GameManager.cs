@@ -1,14 +1,17 @@
 using UnityEngine;
+using System;
 
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
     
-    private int gold;
+    private long gold;
 
-    public int Gold => gold;
+    public long Gold => gold;
 
     private const string GoldKey = "Gold";
+
+    public event Action OnGoldChanged;
 
     private void Awake()
     {
@@ -27,7 +30,7 @@ public class GameManager : MonoBehaviour
         LoadGold();
     }
 
-    public void AddGold(int amount)
+    public void AddGold(long amount)
     {
         if (amount < 0)
             return;
@@ -46,7 +49,7 @@ public class GameManager : MonoBehaviour
         SaveGold();
     }
 
-    public bool SpendGold(int amount)
+    public bool SpendGold(long amount)
     {
         if (gold < amount)
             return false;
@@ -58,25 +61,31 @@ public class GameManager : MonoBehaviour
         return true;
     }
 
-    public bool HasEnoughGold(int amount)
+    public bool HasEnoughGold(long amount)
     {
         return gold >= amount;
     }
 
     private void SaveGold()
     {
-        PlayerPrefs.SetInt(GoldKey, gold);
+        PlayerPrefsUtility.SetLong(GoldKey, gold);
         PlayerPrefs.Save();
+        OnGoldChanged?.Invoke();
     }
 
     private void LoadGold()
     {
-        gold = PlayerPrefs.GetInt(GoldKey, 0);
+        gold = PlayerPrefsUtility.GetLong(GoldKey, 0);
+        OnGoldChanged?.Invoke();
     }
 
     public void ResetGold()
     {
         gold = 0;
-        SaveGold();
+
+        PlayerPrefs.DeleteKey(GoldKey);
+        PlayerPrefs.Save();
+
+        OnGoldChanged?.Invoke();
     }
 }

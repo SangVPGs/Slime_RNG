@@ -10,8 +10,8 @@ public abstract class UnitData : ScriptableObject
     public GameObject model;
 
     [Header("Base Stats")]
-    public int baseHp = 100;
-    public int baseAtk = 10;
+    public long baseHp = 100;
+    public long baseAtk = 10;
 
     public float baseAtkRange = 1.5f;
     public float baseAtkSpeed = 1f;

@@ -20,7 +20,7 @@ public class RebirthUI : MonoBehaviour
     {
         int currentMapLevel = MapProgressSave.LoadCurrentMapLevel();
 
-        int currentGold = GameManager.Instance != null ? GameManager.Instance.Gold : 0;
+        long currentGold = GameManager.Instance != null ? GameManager.Instance.Gold : 0;
 
         float currentLuck = PlayerStatContext.Instance != null ? PlayerStatContext.Instance.GetFinalStat(UpgradeStatType.Luck, 1f) : 1f;
 
@@ -30,12 +30,12 @@ public class RebirthUI : MonoBehaviour
             mapTitleText.text = $"Map: Lv {currentMapLevel} => Lv 1";
 
         if (goldTitleText != null)
-            goldTitleText.text = $"Gold: {currentGold} => 0";
+            goldTitleText.text = $"Gold: {NumberFormatter.Format(currentGold)} => 0";
 
         if (luckTitleText != null)
             luckTitleText.text = $"Luck: {currentLuck:0.###} => {nextLuck:0.###}";
 
         if (costText != null && rebirthSystem != null)
-            costText.text = $"Cost: {rebirthSystem.CurrentGoldCost:N0} Gold";
+            costText.text = $"Cost: {NumberFormatter.Format(rebirthSystem.CurrentGoldCost)} Gold"; // phải thay bằng "goon"
     }
 }

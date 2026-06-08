@@ -15,12 +15,8 @@ MonoBehaviour:
   id: S002
   unitName: Electro Slime
   model: {fileID: 919132149155446097, guid: 3d9895fa7d7d01f449fd85cdcd8282c4, type: 3}
-  baseHp: 2300
-  baseAtk: 200
+  baseHp: 1000
+  baseAtk: 100
   baseAtkRange: 3
   baseAtkSpeed: 1
   baseSpeed: 3.5
-  baseGoldDrop: 20
-  hpPerLevel: 399
-  atkPerLevel: 80
-  goldDropPerLevel: 10

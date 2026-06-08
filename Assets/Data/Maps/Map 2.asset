@@ -18,3 +18,7 @@ MonoBehaviour:
   enemies:
   - {fileID: 11400000, guid: 7a8bffc04bb328148adc995921df2d4d, type: 2}
   - {fileID: 11400000, guid: a4e95ef74792c544ca7dca15b5bcb618, type: 2}
+  enemyStats:
+    hp: 2000
+    atk: 200
+    goldDrop: 20

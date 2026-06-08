@@ -10,12 +10,12 @@ public class MapUnlockUI : MonoBehaviour
 
     private MapChunk owner;
 
-    public void Initialize(MapChunk mapChunk, int unlockCost)
+    public void Initialize(MapChunk mapChunk, long unlockCost)
     {
         owner = mapChunk;
 
         if (costText != null)
-            costText.text = unlockCost.ToString();
+            costText.text = $"{NumberFormatter.Format(unlockCost)}";
 
         if (unlockButton != null)
         {

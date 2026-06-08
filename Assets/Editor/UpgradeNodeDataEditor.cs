@@ -7,8 +7,9 @@ public class UpgradeNodeDataEditor : Editor
     private SerializedProperty id;
     private SerializedProperty displayName;
     private SerializedProperty icon;
+    private SerializedProperty description;
     private SerializedProperty parent;
-    private SerializedProperty uiPosition;
+    private SerializedProperty direction;
     private SerializedProperty cost;
 
     private SerializedProperty effectType;
@@ -23,8 +24,9 @@ public class UpgradeNodeDataEditor : Editor
         id = serializedObject.FindProperty("id");
         displayName = serializedObject.FindProperty("displayName");
         icon = serializedObject.FindProperty("icon");
+        description = serializedObject.FindProperty("description");
         parent = serializedObject.FindProperty("parent");
-        uiPosition = serializedObject.FindProperty("uiPosition");
+        direction = serializedObject.FindProperty("direction");
         cost = serializedObject.FindProperty("cost");
 
         effectType = serializedObject.FindProperty("effectType");
@@ -58,6 +60,7 @@ public class UpgradeNodeDataEditor : Editor
 
         EditorGUILayout.PropertyField(displayName);
         EditorGUILayout.PropertyField(icon);
+        EditorGUILayout.PropertyField(description);
 
         EditorGUILayout.Space(8);
     }
@@ -73,7 +76,7 @@ public class UpgradeNodeDataEditor : Editor
     private void DrawUI()
     {
         EditorGUILayout.LabelField("UI", EditorStyles.boldLabel);
-        EditorGUILayout.PropertyField(uiPosition);
+        EditorGUILayout.PropertyField(direction);
 
         EditorGUILayout.Space(8);
     }

@@ -15,6 +15,9 @@ MonoBehaviour:
   level: 1
   mapPrefab: {fileID: 6807517083651868280, guid: d5753b65f443c06468c24e2935fd0b1a,
     type: 3}
-  unlockCost: 0
   enemies:
   - {fileID: 11400000, guid: 7a8bffc04bb328148adc995921df2d4d, type: 2}
+  enemyStats:
+    hp: 1000
+    atk: 100
+    goldDrop: 10

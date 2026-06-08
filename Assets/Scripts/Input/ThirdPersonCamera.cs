@@ -43,6 +43,7 @@ public class ThirdPersonCamera : MonoBehaviour
 
     [Header("Touch Rules")]
     [SerializeField] private Joystick moveJoystick;
+    [SerializeField] private RectTransform zoomArea;
     [SerializeField] private float simultaneousTouchWindow = 0.12f;
 
     [Header("UI Layers")]
@@ -360,6 +361,9 @@ public class ThirdPersonCamera : MonoBehaviour
             if (blockingUITouchIds.Contains(touchId))
                 continue;
 
+            if (!IsTouchInsideZoomArea(touch))
+                continue;
+
             if (touch0 == null)
             {
                 touch0 = touch;
@@ -371,6 +375,34 @@ public class ThirdPersonCamera : MonoBehaviour
         }
 
         return false;
+    }
+
+    private bool IsTouchInsideZoomArea(TouchControl touch)
+    {
+        if (zoomArea == null)
+            return true;
+
+        Vector2 position = touch.position.ReadValue();
+
+        return IsScreenPointInsideRect(zoomArea, position);
+    }
+
+    private bool IsScreenPointInsideRect(RectTransform rectTransform, Vector2 screenPosition)
+    {
+        if (rectTransform == null)
+            return true;
+
+        Canvas canvas = rectTransform.GetComponentInParent<Canvas>();
+        Camera eventCamera = null;
+
+        if (canvas != null && canvas.renderMode == RenderMode.ScreenSpaceCamera)
+            eventCamera = canvas.worldCamera;
+
+        return RectTransformUtility.RectangleContainsScreenPoint(
+            rectTransform,
+            screenPosition,
+            eventCamera
+        );
     }
 
     private bool IsScreenPointOnBlockingUI(Vector2 screenPosition)
@@ -531,13 +563,5 @@ public class ThirdPersonCamera : MonoBehaviour
             minDistance,
             desiredDistance
         );
-    }
-
-    public void SetTarget(Transform newTarget)
-    {
-        target = newTarget;
-
-        if (target != null)
-            currentFocusPoint = target.position + focusOffset;
     }
 }

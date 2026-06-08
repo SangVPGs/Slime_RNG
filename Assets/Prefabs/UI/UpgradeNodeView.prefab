@@ -256,6 +256,7 @@ GameObject:
   - component: {fileID: 6617654610831488422}
   - component: {fileID: 1768890366242686351}
   - component: {fileID: -3873569844639935946}
+  - component: {fileID: -3105988614749969701}
   m_Layer: 5
   m_Name: UpgradeNodeView
   m_TagString: Untagged
@@ -302,6 +303,8 @@ MonoBehaviour:
   iconImage: {fileID: 7439628789060283316}
   lockOverlay: {fileID: 6177970359503895738}
   costText: {fileID: 6469019739689145052}
+  unlockedMark: {fileID: 0}
+  canUnlockMark: {fileID: 0}
   canvasGroup: {fileID: -3873569844639935946}
 --- !u!225 &-3873569844639935946
 CanvasGroup:
@@ -315,6 +318,19 @@ CanvasGroup:
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
+--- !u!114 &-3105988614749969701
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7684088940594584855}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d0b148fe25e99eb48b9724523833bab1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Delegates: []
 --- !u!1 &7913613246119774014
 GameObject:
   m_ObjectHideFlags: 0

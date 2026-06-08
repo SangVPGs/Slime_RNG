@@ -14,15 +14,21 @@ public enum UpgradeStatType
 {
     None,
     Luck,
-
     MaxPartySize,
-    SlimePoolSize
+    SlimePoolSize,
+    GoldGain,
+}
 
-    //ExpGain,
-    //GoldGain,
-
-    //UnlockGoldCostReduction,
-    //RebirthGoldCostReduction,
+public enum UpgradeNodeDirection
+{
+    Right,
+    UpRight,
+    Up,
+    UpLeft,
+    Left,
+    DownLeft,
+    Down,
+    DownRight
 }
 
 [CreateAssetMenu(menuName = "Game/Upgrade Node")]
@@ -30,22 +36,18 @@ public class UpgradeNodeData : ScriptableObject
 {
     [SerializeField, HideInInspector] private string id;
 
-    [Header("Info")]
     [SerializeField] private string displayName;
     [SerializeField] private Sprite icon;
+    [SerializeField, TextArea(2, 5)] private string description;
 
-    [Header("Tree")]
     [SerializeField] private UpgradeNodeData parent;
-    [SerializeField] private Vector2 uiPosition;
-    [SerializeField, Min(0)] private int cost;
+    [SerializeField] private UpgradeNodeDirection direction = UpgradeNodeDirection.Right;
+    [SerializeField, Min(0)] private long cost;
 
-    [Header("Effect")]
     [SerializeField] private UpgradeEffectType effectType;
 
-    [Header("Unlock Item")]
     [SerializeField] private ItemData targetItem;
 
-    [Header("Change Stat")]
     [SerializeField] private UpgradeStatType statType;
     [SerializeField] private StatModifierType statModifierType;
     [SerializeField] private float value;
@@ -53,13 +55,14 @@ public class UpgradeNodeData : ScriptableObject
     public string Id => id;
     public string DisplayName => displayName;
     public Sprite Icon => icon;
+    public string Description => description;
 
     public UpgradeNodeData Parent => parent;
     public string ParentId => parent != null ? parent.Id : string.Empty;
     public bool IsRoot => parent == null;
 
-    public Vector2 UiPosition => uiPosition;
-    public int Cost => cost;
+    public UpgradeNodeDirection Direction => direction;
+    public long Cost => cost;
 
     public UpgradeEffectType EffectType => effectType;
 
@@ -112,10 +115,7 @@ public class UpgradeNodeData : ScriptableObject
         if (parent == this)
         {
             parent = null;
-            Debug.LogError(
-                $"Upgrade node '{name}' cannot be its own parent.",
-                this
-            );
+            Debug.LogError($"Upgrade node '{name}' cannot be its own parent.", this);
             EditorUtility.SetDirty(this);
             return;
         }
@@ -123,10 +123,7 @@ public class UpgradeNodeData : ScriptableObject
         if (HasCircularParent())
         {
             parent = null;
-            Debug.LogError(
-                $"Upgrade node '{name}' has circular parent reference. Parent has been cleared.",
-                this
-            );
+            Debug.LogError($"Upgrade node '{name}' has circular parent reference. Parent has been cleared.", this);
             EditorUtility.SetDirty(this);
         }
     }

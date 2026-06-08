@@ -49,8 +49,8 @@ public class UnitHealthBar : MonoBehaviour
 
     private void UpdateHealthUI()
     {
-        int currentHp = unit.CurrentHp;
-        int maxHp = unit.MaxHp;
+        long currentHp = unit.CurrentHp;
+        long maxHp = unit.MaxHp;
 
         float percent = maxHp > 0 ? (float)currentHp / maxHp : 0f;
 
@@ -58,6 +58,6 @@ public class UnitHealthBar : MonoBehaviour
             fillImage.fillAmount = percent;
 
         if (hpText != null)
-            hpText.text = $"{currentHp}/{maxHp}";
+            hpText.text = $"{NumberFormatter.Format(currentHp)}/{NumberFormatter.Format(maxHp)}";
     }
 }

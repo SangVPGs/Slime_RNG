@@ -15,8 +15,9 @@ MonoBehaviour:
   id: UP010
   displayName: Increase Enemy Spawn 1
   icon: {fileID: 21300000, guid: bb168b723ea3145e6a3849c0e713f212, type: 3}
+  description: Increase enemy spawn by 1
   parent: {fileID: 11400000, guid: 1d7b805a50613724b8ba4104b94f564a, type: 2}
-  uiPosition: {x: 300, y: 0}
+  direction: 4
   cost: 1000
   effectType: 1
   targetItem: {fileID: 0}

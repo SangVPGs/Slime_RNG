@@ -15,8 +15,9 @@ MonoBehaviour:
   id: UP004
   displayName: Luck Potion
   icon: {fileID: 21300000, guid: 54bbf2b8f47691748bac4f0fedc8a003, type: 3}
-  parent: {fileID: 11400000, guid: 1d7b805a50613724b8ba4104b94f564a, type: 2}
-  uiPosition: {x: 300, y: -300}
+  description: Unlock luck potion
+  parent: {fileID: 11400000, guid: b7671e1fdcfa3654c9d994e59dab4fdd, type: 2}
+  direction: 4
   cost: 100
   effectType: 0
   targetItem: {fileID: 11400000, guid: 60d907fe8818a154483b33c4c3efb7e0, type: 2}

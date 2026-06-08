@@ -219,6 +219,16 @@ public class InventorySystem : MonoBehaviour
         JsonUtility.FromJsonOverwrite(json, data);
     }
 
+    public void ClearData()
+    {
+        data.Clear();
+
+        PlayerPrefs.DeleteKey(SaveKey);
+        PlayerPrefs.Save();
+
+        OnInventoryChanged?.Invoke();
+    }
+
     [Serializable]
     public class InventoryData
     {

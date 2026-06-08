@@ -21,7 +21,7 @@ MonoBehaviour:
   dropWeight: 100
   stackable: 1
   maxStack: 999
-  itemType: 0
+  itemType: 1
   statType: 0
   modifierType: 0
   value: 100

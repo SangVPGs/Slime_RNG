@@ -5,11 +5,13 @@ public readonly struct SlimeSpawnContext
 {
     public readonly int MapLevel;
     public readonly IReadOnlyList<SlimeUnitData> Enemies;
+    public readonly EnemyStatData EnemyStats;
 
-    public SlimeSpawnContext(int mapLevel, IReadOnlyList<SlimeUnitData> enemies)
+    public SlimeSpawnContext(int mapLevel, IReadOnlyList<SlimeUnitData> enemies, EnemyStatData enemyStats)
     {
         MapLevel = mapLevel;
         Enemies = enemies;
+        EnemyStats = enemyStats;
     }
 }
 
@@ -234,8 +236,7 @@ public class SlimeSpawner : MonoBehaviour
                 continue;
 
             RespawnSlime(slime);
-            nextOutOfRangeRespawnTime[slime] =
-                Time.time + outOfRangeRespawnCooldown;
+            nextOutOfRangeRespawnTime[slime] = Time.time + outOfRangeRespawnCooldown;
         }
     }
 
@@ -285,11 +286,10 @@ public class SlimeSpawner : MonoBehaviour
         if (data == null)
             return;
 
-        slime.Spawn(
-            data,
-            currentContext.MapLevel,
-            GetRandomEdgePosition()
-        );
+        if (currentContext.EnemyStats == null)
+            return;
+
+        slime.Spawn(data, currentContext.EnemyStats, GetRandomEdgePosition());
     }
 
     private SlimeUnitData GetRandomCurrentEnemyData()

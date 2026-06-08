@@ -15,8 +15,9 @@ MonoBehaviour:
   id: UP009
   displayName: Increase Party Size 2
   icon: {fileID: 21300000, guid: bb168b723ea3145e6a3849c0e713f212, type: 3}
+  description: Increase party size by 2
   parent: {fileID: 11400000, guid: 102fd4c772b60ea4c99947a835dc9aad, type: 2}
-  uiPosition: {x: 0, y: -600}
+  direction: 7
   cost: 5000
   effectType: 1
   targetItem: {fileID: 0}

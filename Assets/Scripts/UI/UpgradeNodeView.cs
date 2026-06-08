@@ -13,10 +13,15 @@ public class UpgradeNodeView : MonoBehaviour, IPointerClickHandler
     [SerializeField] private GameObject lockOverlay;
     [SerializeField] private TMP_Text costText;
 
+    [Header("State Visual")]
+    [SerializeField] private GameObject unlockedMark;
+    [SerializeField] private GameObject canUnlockMark;
+
     [Header("Visibility")]
     [SerializeField] private CanvasGroup canvasGroup;
 
     private UpgradeTreeSystem treeSystem;
+    private UpgradeTreeView treeView;
     private UpgradeNodeData node;
 
     private bool visible;
@@ -24,16 +29,16 @@ public class UpgradeNodeView : MonoBehaviour, IPointerClickHandler
     public RectTransform RectTransform => transform as RectTransform;
     public UpgradeNodeData Node => node;
 
-    public void Setup(UpgradeTreeSystem treeSystem, UpgradeNodeData node)
+    public void Setup(
+        UpgradeTreeSystem treeSystem,
+        UpgradeTreeView treeView,
+        UpgradeNodeData node)
     {
         this.treeSystem = treeSystem;
+        this.treeView = treeView;
         this.node = node;
 
-        if (canvasGroup == null)
-            canvasGroup = GetComponent<CanvasGroup>();
-
-        if (canvasGroup == null)
-            canvasGroup = gameObject.AddComponent<CanvasGroup>();
+        ResolveCanvasGroup();
 
         Refresh();
     }
@@ -41,6 +46,11 @@ public class UpgradeNodeView : MonoBehaviour, IPointerClickHandler
     public void SetVisible(bool value)
     {
         visible = value;
+
+        ResolveCanvasGroup();
+
+        if (canvasGroup == null)
+            return;
 
         canvasGroup.alpha = value ? 1f : 0f;
         canvasGroup.interactable = value;
@@ -52,8 +62,18 @@ public class UpgradeNodeView : MonoBehaviour, IPointerClickHandler
         if (treeSystem == null || node == null)
             return;
 
+        RefreshInfo();
+        RefreshState();
+    }
+
+    private void RefreshInfo()
+    {
         if (nameText != null)
-            nameText.text = string.IsNullOrWhiteSpace(node.DisplayName) ? node.name : node.DisplayName;
+        {
+            nameText.text = string.IsNullOrWhiteSpace(node.DisplayName)
+                ? node.name
+                : node.DisplayName;
+        }
 
         if (iconImage != null)
         {
@@ -62,25 +82,44 @@ public class UpgradeNodeView : MonoBehaviour, IPointerClickHandler
         }
 
         if (costText != null)
-            costText.text = node.Cost <= 0 ? "Free" : node.Cost.ToString();
+        {
+            costText.text = node.Cost <= 0
+                ? "Free"
+                : NumberFormatter.Format(node.Cost);
+        }
+    }
 
+    private void RefreshState()
+    {
         bool unlocked = treeSystem.IsUnlocked(node);
+        bool canUnlock = treeSystem.CanUnlock(node);
 
         if (lockOverlay != null)
             lockOverlay.SetActive(!unlocked);
+
+        if (unlockedMark != null)
+            unlockedMark.SetActive(unlocked);
+
+        if (canUnlockMark != null)
+            canUnlockMark.SetActive(!unlocked && canUnlock);
     }
 
     public void OnPointerClick(PointerEventData eventData)
     {
-        if (!visible)
+        if (treeView == null || node == null)
             return;
 
-        if (treeSystem == null || node == null)
+        treeView.SelectNode(node);
+    }
+
+    private void ResolveCanvasGroup()
+    {
+        if (canvasGroup != null)
             return;
 
-        if (!treeSystem.CanUnlock(node))
-            return;
+        canvasGroup = GetComponent<CanvasGroup>();
 
-        treeSystem.Unlock(node);
+        if (canvasGroup == null)
+            canvasGroup = gameObject.AddComponent<CanvasGroup>();
     }
 }

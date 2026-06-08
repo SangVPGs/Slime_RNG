@@ -15,12 +15,8 @@ MonoBehaviour:
   id: S004
   unitName: Water Slime
   model: {fileID: 919132149155446097, guid: 7670f527b9d017840b35824a372fd51d, type: 3}
-  baseHp: 3000
-  baseAtk: 150
+  baseHp: 1000
+  baseAtk: 100
   baseAtkRange: 3
   baseAtkSpeed: 1
   baseSpeed: 3.5
-  baseGoldDrop: 30
-  hpPerLevel: 499
-  atkPerLevel: 30
-  goldDropPerLevel: 10

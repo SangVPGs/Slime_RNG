@@ -15,8 +15,9 @@ MonoBehaviour:
   id: UP006
   displayName: Luck 2
   icon: {fileID: 21300000, guid: e696fd330fd78de408371624a4411c80, type: 3}
+  description: Increase luck 20%
   parent: {fileID: 11400000, guid: b46aa03161d24b3488fde95046bc9f59, type: 2}
-  uiPosition: {x: -600, y: -300}
+  direction: 0
   cost: 5000
   effectType: 1
   targetItem: {fileID: 0}

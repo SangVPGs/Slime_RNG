@@ -14,18 +14,21 @@ public class MapChunk : MonoBehaviour
     public Transform EndPoint => endPoint;
     public Transform CheckPoint => checkPoint;
 
-    public int Level => runtimeLevel;
-    public int UnlockCost => unlockCost;
-
-    public IReadOnlyList<SlimeUnitData> Enemies =>
-        data != null ? data.enemies : null;
-
     private MapData data;
+
+    public int Level => runtimeLevel;
+
+    public IReadOnlyList<SlimeUnitData> Enemies => data != null ? data.enemies : null;
+
+    public EnemyStatData EnemyStats => data != null ? data.enemyStats : null;
+
     private int runtimeLevel;
-    private int unlockCost;
+
+    private long unlockCost;
+    public long UnlockCost => unlockCost;
     private bool isUnlocked;
 
-    public void Initialize(MapData mapData, int level, int cost)
+    public void Initialize(MapData mapData, int level, long cost)
     {
         data = mapData;
         runtimeLevel = level;

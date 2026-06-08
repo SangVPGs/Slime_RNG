@@ -80,7 +80,7 @@ public class MapRenderer : MonoBehaviour
             return;
         }
 
-        int unlockCost = mapCostData != null ? mapCostData.GetCost(runtimeLevel) : 0;
+        long unlockCost = mapCostData != null ? mapCostData.GetCost(runtimeLevel) : 0;
 
         MapChunk chunk = Instantiate(mapTemplate, mapParent);
 

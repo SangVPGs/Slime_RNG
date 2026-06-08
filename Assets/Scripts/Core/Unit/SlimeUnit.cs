@@ -18,7 +18,7 @@ public class SlimeUnit : Unit
     [SerializeField] private float stopDistanceFromPlayer = 2f;
 
     [Header("Gold Drop")]
-    [SerializeField] private int goldDrop;
+    [SerializeField] private long goldDrop;
 
     private SlimeSpawner spawner;
 
@@ -32,6 +32,7 @@ public class SlimeUnit : Unit
 
     public bool IsWaitingRespawn => waitingRespawn;
     public SlimeUnitData SlimeData => data as SlimeUnitData;
+    private EnemyStatData currentEnemyStat;
 
     protected override void Awake()
     {
@@ -66,12 +67,11 @@ public class SlimeUnit : Unit
     {
         base.RecalculateStats();
 
-        int levelOffset = Mathf.Max(0, currentLevel - 1);
+        if (currentEnemyStat == null)
+            return;
 
-        maxHp += SlimeData.hpPerLevel * levelOffset;
-        atk += SlimeData.atkPerLevel * levelOffset;
-        
-        goldDrop = Mathf.Max(0, SlimeData.baseGoldDrop + SlimeData.goldDropPerLevel * levelOffset);
+        maxHp = currentEnemyStat.Hp;
+        atk = currentEnemyStat.Atk;
     }
 
     private void FixedUpdate()
@@ -142,7 +142,7 @@ public class SlimeUnit : Unit
         }
     }
 
-    public void Spawn(SlimeUnitData slimeData, int mapLevel, Vector3 position)
+    public void Spawn(SlimeUnitData slimeData, EnemyStatData enemyStats, Vector3 position)
     {
         if (slimeData == null)
             return;
@@ -159,11 +159,13 @@ public class SlimeUnit : Unit
             visualRoot.localScale = Vector3.one;
         }
 
+        currentEnemyStat = enemyStats;
+
         gameObject.SetActive(true);
 
         Init(slimeData);
 
-        SetLevel(Mathf.Max(1, mapLevel));
+        currentHp = maxHp;
 
         DisableUnusedNavigation();
         DisableRootMotion();
@@ -280,7 +282,7 @@ public class SlimeUnit : Unit
         return base.Attack(target);
     }
 
-    public override void TakeDamage(int damage)
+    public override void TakeDamage(long damage)
     {
         base.TakeDamage(damage);
     }
@@ -292,8 +294,8 @@ public class SlimeUnit : Unit
 
         base.Die();
 
-        if (GameManager.Instance != null && SlimeData != null)
-            GameManager.Instance.AddGold(goldDrop);
+        if (GameManager.Instance != null)
+            GameManager.Instance.AddGold(currentEnemyStat.goldDrop);
     }
 
     public override bool LevelUp()

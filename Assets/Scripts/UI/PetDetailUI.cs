@@ -27,10 +27,10 @@ public class PetDetailUI : MonoBehaviour
             nameText.text = petData.unitName;
 
         if (hpText != null)
-            hpText.text = isOwned ? petData.baseHp.ToString() : "????";
+            hpText.text = isOwned ? $"{NumberFormatter.Format(petData.baseHp)}" : "???";
 
         if (atkText != null)
-            atkText.text = isOwned ? petData.baseAtk.ToString() : "????";
+            atkText.text = isOwned ? $"{NumberFormatter.Format(petData.baseAtk)}" : "???";
 
     }
 }

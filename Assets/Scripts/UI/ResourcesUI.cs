@@ -19,6 +19,6 @@ public class ResourcesUI : MonoBehaviour
         if (GameManager.Instance == null)
             return;
 
-        goldText.text = $"Gold: {GameManager.Instance.Gold}";
+        goldText.text = $"Gold: {NumberFormatter.Format(GameManager.Instance.Gold)}";
     }
 }

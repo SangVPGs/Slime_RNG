@@ -25,7 +25,8 @@ public class MapAreaTrigger : MonoBehaviour
             SlimeSpawner.Instance.SetContext(
                 new SlimeSpawnContext(
                     mapChunk.Level,
-                    mapChunk.Enemies
+                    mapChunk.Enemies,
+                    mapChunk.EnemyStats
                 )
             );
         }

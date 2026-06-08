@@ -24,14 +24,14 @@ public abstract class Unit : MonoBehaviour
     [SerializeField] protected int currentLevel = 1;
 
     [Header("Runtime Stats")]
-    [SerializeField] protected int maxHp;
-    [SerializeField] protected int atk;
+    [SerializeField] protected long maxHp;
+    [SerializeField] protected long atk;
     [SerializeField] protected float atkRange;
     [SerializeField] protected float atkSpeed;
     [SerializeField] protected float speed;
 
     [Header("Runtime")]
-    [SerializeField] protected int currentHp;
+    [SerializeField] protected long currentHp;
     [SerializeField] protected UnitState state = UnitState.Idle;
 
     [Header("Visual")]
@@ -65,9 +65,9 @@ public abstract class Unit : MonoBehaviour
 
     public int CurrentLevel => currentLevel;
 
-    public int MaxHp => maxHp;
-    public int CurrentHp => currentHp;
-    public int Atk => atk;
+    public long MaxHp => maxHp;
+    public long CurrentHp => currentHp;
+    public long Atk => atk;
     public float AtkRange => atkRange;
 
 
@@ -348,12 +348,12 @@ public abstract class Unit : MonoBehaviour
         attackRoutine = null;
     }
 
-    public virtual void TakeDamage(int damage)
+    public virtual void TakeDamage(long damage)
     {
         if (IsDead)
             return;
 
-        int finalDamage = Mathf.Max(1, damage);
+        long finalDamage = Math.Max(1, damage);
         currentHp -= finalDamage;
 
         if (currentHp <= 0)

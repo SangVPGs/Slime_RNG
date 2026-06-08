@@ -89,7 +89,7 @@ public class PetInventoryUIItem : MonoBehaviour
         if (combatPowerText != null)
         {
             long cp = PetUnit.CalculateCombatPower(entry.petData, entry.level);
-            combatPowerText.text = $"CP {cp}";
+            combatPowerText.text = $"CP {NumberFormatter.Format(cp)}";
         }
     }
 
