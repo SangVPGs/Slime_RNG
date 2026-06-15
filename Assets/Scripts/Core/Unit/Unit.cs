@@ -24,14 +24,14 @@ public abstract class Unit : MonoBehaviour
     [SerializeField] protected int currentLevel = 1;
 
     [Header("Runtime Stats")]
-    [SerializeField] protected long maxHp;
-    [SerializeField] protected long atk;
+    [SerializeField] protected double maxHp;
+    [SerializeField] protected double atk;
     [SerializeField] protected float atkRange;
     [SerializeField] protected float atkSpeed;
     [SerializeField] protected float speed;
 
     [Header("Runtime")]
-    [SerializeField] protected long currentHp;
+    [SerializeField] protected double currentHp;
     [SerializeField] protected UnitState state = UnitState.Idle;
 
     [Header("Visual")]
@@ -65,15 +65,11 @@ public abstract class Unit : MonoBehaviour
 
     public int CurrentLevel => currentLevel;
 
-    public long MaxHp => maxHp;
-    public long CurrentHp => currentHp;
-    public long Atk => atk;
+    public double MaxHp => maxHp;
+    public double CurrentHp => currentHp;
+    public double Atk => atk;
     public float AtkRange => atkRange;
 
-
-    public float HpPercent => maxHp > 0 ? (float)currentHp / maxHp : 0f;
-
-    public UnitState State => state;
     public bool IsDead => state == UnitState.Dead;
 
     protected virtual string LevelSaveKey => $"{LevelKeyPrefix}{unitInstanceId}";
@@ -348,12 +344,12 @@ public abstract class Unit : MonoBehaviour
         attackRoutine = null;
     }
 
-    public virtual void TakeDamage(long damage)
+    public virtual void TakeDamage(double damage)
     {
         if (IsDead)
             return;
 
-        long finalDamage = Math.Max(1, damage);
+        double finalDamage = Math.Max(1, damage);
         currentHp -= finalDamage;
 
         if (currentHp <= 0)
@@ -401,14 +397,14 @@ public abstract class Unit : MonoBehaviour
         nextAttackTime = 0f;
         currentHp = 0;
 
-        float elapsed = 0f;
+        double elapsed = 0f;
 
         while (elapsed < reviveHealDuration)
         {
             elapsed += Time.deltaTime;
 
-            float percent = Mathf.Clamp01(elapsed / reviveHealDuration);
-            currentHp = Mathf.RoundToInt(maxHp * percent);
+            double percent = Mathf.Clamp01((float)(double)elapsed / reviveHealDuration);
+            currentHp = Math.Round(maxHp * percent);
 
             yield return null;
         }

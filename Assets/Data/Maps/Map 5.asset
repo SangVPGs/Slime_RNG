@@ -13,12 +13,11 @@ MonoBehaviour:
   m_Name: Map 5
   m_EditorClassIdentifier: 
   level: 5
-  mapPrefab: {fileID: 6807517083651868280, guid: da7b0eb077240a8478dbaa7d69087c04,
+  mapPrefab: {fileID: 646257893302084318, guid: bfcbb69c0e55ec44487dc11ec0d2800a,
     type: 3}
   enemies:
-  - {fileID: 11400000, guid: 7a8bffc04bb328148adc995921df2d4d, type: 2}
-  - {fileID: 11400000, guid: a4e95ef74792c544ca7dca15b5bcb618, type: 2}
+  - {fileID: 11400000, guid: 81f3c58a91603284f80e4d3b0c661eb9, type: 2}
   enemyStats:
-    hp: 15000
-    atk: 1500
-    goldDrop: 300
+    hp: 5000
+    atk: 500
+    goldDrop: 50

@@ -5,6 +5,7 @@ public class ResourcesUI : MonoBehaviour
 {
     [Header("Text")]
     [SerializeField] private TMP_Text goldText;
+    [SerializeField] private TMP_Text poonText; 
 
     private void Update()
     {
@@ -19,6 +20,7 @@ public class ResourcesUI : MonoBehaviour
         if (GameManager.Instance == null)
             return;
 
-        goldText.text = $"Gold: {NumberFormatter.Format(GameManager.Instance.Gold)}";
+        goldText.text = $"{NumberFormatter.Format(GameManager.Instance.Gold)}";
+        poonText.text = $"{NumberFormatter.Format(GameManager.Instance.Poon)}";
     }
 }

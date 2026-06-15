@@ -1,22 +1,21 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class GachaController : MonoBehaviour
 {
     private GachaSystem gachaSystem => GachaSystem.Instance;
-     private InventorySystem inventorySystem => InventorySystem.Instance;
+    private InventorySystem inventorySystem => InventorySystem.Instance;
 
     [Header("UI Views")]
     [SerializeField] private GachaUI gachaUI;
-    [SerializeField] private GachaMiniUI gachaMiniUI;
+    [SerializeField] private GachaResultView resultView;
 
     [Header("UI Manager Ids")]
     [SerializeField] private string gachaUIId = "2";
-    [SerializeField] private string gachaMiniUIId = "4";
+    [SerializeField] private string resultViewId = "4";
 
     [Header("Timing")]
-    [SerializeField] private float rollingDuration = 2f;
-    [SerializeField] private float switchInterval = 0.08f;
     [SerializeField] private float resultWaitTime = 1f;
 
     private Coroutine autoRollCoroutine;
@@ -66,7 +65,6 @@ public class GachaController : MonoBehaviour
 
             ShowFullPanel(true);
             gachaUI?.SetAutoRollVisual(true);
-
             return;
         }
 
@@ -100,6 +98,12 @@ public class GachaController : MonoBehaviour
         if (inventorySystem == null)
         {
             Debug.LogError("InventorySystem is missing.");
+            return false;
+        }
+
+        if (resultView == null)
+        {
+            Debug.LogError("GachaResultView is missing.");
             return false;
         }
 
@@ -167,6 +171,11 @@ public class GachaController : MonoBehaviour
     {
         while (isAutoRolling)
         {
+            if (useMiniResult)
+                ShowMiniPanel();
+            else
+                ShowFullPanel(true);
+
             yield return StartCoroutine(RollRoutine(true));
 
             if (isAutoRolling)
@@ -183,34 +192,30 @@ public class GachaController : MonoBehaviour
 
         isRolling = true;
 
-        PetUnitData finalPet = gachaSystem.RollPet();
+        bool animationDone = false;
 
-        if (finalPet == null)
-        {
-            isRolling = false;
+        resultView.SetMiniMode(useMiniResult);
 
-            if (!isAutoRolling)
-                HideAllPanels();
+        resultView.PlayChainRoll(
+            (columnIndex, maxColumns) =>
+            {
+                return gachaSystem.RollReward(columnIndex, maxColumns);
+            },
+            (columnIndex, maxColumns) =>
+            {
+                return gachaSystem.GetRandomDisplayReward(columnIndex, maxColumns);
+            },
+            (earnedPets, lastReward) =>
+            {
+                AddEarnedPets(earnedPets);
 
-            yield break;
-        }
+                if (lastReward != null && lastReward.IsBonus && (earnedPets == null || earnedPets.Count == 0))
+                    Debug.Log("Bonus special effect placeholder.");
 
-        float timer = 0f;
+                animationDone = true;
+            });
 
-        while (timer < rollingDuration)
-        {
-            PetUnitData displayPet = gachaSystem.GetRandomDisplayPet();
-            ShowRollingPet(displayPet);
-
-            timer += switchInterval;
-            yield return new WaitForSeconds(switchInterval);
-        }
-
-        inventorySystem.AddPet(finalPet);
-
-        ShowFinalPet(finalPet);
-
-        Debug.Log($"Gacha Result: {finalPet.unitName} ({finalPet.rarity})");
+        yield return new WaitUntil(() => animationDone);
 
         isRolling = false;
 
@@ -236,20 +241,19 @@ public class GachaController : MonoBehaviour
             HideAllPanels();
     }
 
-    private void ShowRollingPet(PetUnitData pet)
+    private void AddEarnedPets(IReadOnlyList<PetUnitData> earnedPets)
     {
-        if (useMiniResult)
-            gachaMiniUI?.ShowRollingPet(pet);
-        else
-            gachaUI?.ShowRollingPet(pet);
-    }
+        if (earnedPets == null)
+            return;
 
-    private void ShowFinalPet(PetUnitData pet)
-    {
-        if (useMiniResult)
-            gachaMiniUI?.ShowFinalPet(pet);
-        else
-            gachaUI?.ShowFinalPet(pet);
+        foreach (PetUnitData pet in earnedPets)
+        {
+            if (pet == null)
+                continue;
+
+            inventorySystem.AddPet(pet);
+            Debug.Log($"Gacha Result: {pet.unitName} ({pet.rarity})");
+        }
     }
 
     private void ShowFullPanel(bool showHideButton)
@@ -257,10 +261,12 @@ public class GachaController : MonoBehaviour
         useMiniResult = false;
 
         UIManager.Instance?.Show(gachaUIId);
-        UIManager.Instance?.Hide(gachaMiniUIId);
+        UIManager.Instance?.Show(resultViewId);
 
-        gachaMiniUI?.ClearResult();
-        gachaUI?.SetHideButtonVisible(showHideButton);
+        resultView.MoveToFull(false);
+        resultView.SetRaycastBlocking(false);
+
+        gachaUI?.ShowFullControls(showHideButton);
         gachaUI?.RefreshRate();
     }
 
@@ -269,19 +275,21 @@ public class GachaController : MonoBehaviour
         useMiniResult = true;
 
         UIManager.Instance?.Hide(gachaUIId);
-        UIManager.Instance?.Show(gachaMiniUIId);
+        UIManager.Instance?.Show(resultViewId);
 
-        gachaUI?.ClearResult();
+        resultView.MoveToMini(false);
+        resultView.SetRaycastBlocking(false);
+
         gachaUI?.SetHideButtonVisible(false);
     }
 
     private void HideAllPanels()
     {
         UIManager.Instance?.Hide(gachaUIId);
-        UIManager.Instance?.Hide(gachaMiniUIId);
+        UIManager.Instance?.Hide(resultViewId);
 
-        gachaUI?.ClearResult();
-        gachaMiniUI?.ClearResult();
+        if (!isRolling)
+            resultView.Clear();
 
         gachaUI?.SetAutoRollVisual(false);
         gachaUI?.SetHideButtonVisible(false);

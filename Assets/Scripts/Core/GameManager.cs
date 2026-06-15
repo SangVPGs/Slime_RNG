@@ -5,13 +5,16 @@ public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
     
-    private long gold;
-
-    public long Gold => gold;
-
+    private double gold;
+    public double Gold => gold;
     private const string GoldKey = "Gold";
-
     public event Action OnGoldChanged;
+
+
+    private double poon;
+    public double Poon => poon;
+    private const string PoonKey = "Poon";
+    public event Action OnPoonChanged;
 
     private void Awake()
     {
@@ -28,9 +31,10 @@ public class GameManager : MonoBehaviour
     private void Start()
     {
         LoadGold();
+        LoadPoon();
     }
 
-    public void AddGold(long amount)
+    public void AddGold(double amount)
     {
         if (amount < 0)
             return;
@@ -42,14 +46,14 @@ public class GameManager : MonoBehaviour
         //    multiplier = PlayerStatContext.Instance.GetFinalStat(UpgradeStatType.GoldGain, 1f);
         //}
 
-        int finalAmount = Mathf.RoundToInt(amount * multiplier);
+        double finalAmount = Math.Round(amount * multiplier);
 
         gold += finalAmount;
 
         SaveGold();
     }
 
-    public bool SpendGold(long amount)
+    public bool SpendGold(double amount)
     {
         if (gold < amount)
             return false;
@@ -61,22 +65,64 @@ public class GameManager : MonoBehaviour
         return true;
     }
 
-    public bool HasEnoughGold(long amount)
+    public bool HasEnoughGold(double amount)
     {
         return gold >= amount;
     }
 
     private void SaveGold()
     {
-        PlayerPrefsUtility.SetLong(GoldKey, gold);
+        PlayerPrefsUtility.SetDouble(GoldKey, gold);
         PlayerPrefs.Save();
         OnGoldChanged?.Invoke();
     }
 
     private void LoadGold()
     {
-        gold = PlayerPrefsUtility.GetLong(GoldKey, 0);
+        gold = PlayerPrefsUtility.GetDouble(GoldKey, 0);
         OnGoldChanged?.Invoke();
+    }
+
+    public void AddPoon(double amount)
+    {
+        if (amount <= 0)
+            return;
+
+        poon += amount;
+
+        SavePoon();
+    }
+
+    public bool SpendPoon(double amount)
+    {
+        if (poon < amount)
+            return false;
+
+        poon -= amount;
+
+        SavePoon();
+
+        return true;
+    }
+
+    public bool HasEnoughPoon(double amount)
+    {
+        return poon >= amount;
+    }
+
+    private void SavePoon()
+    {
+        PlayerPrefsUtility.SetDouble(PoonKey, poon);
+        PlayerPrefs.Save();
+
+        OnPoonChanged?.Invoke();
+    }
+
+    private void LoadPoon()
+    {
+        poon = PlayerPrefsUtility.GetDouble(PoonKey, 0);
+
+        OnPoonChanged?.Invoke();
     }
 
     public void ResetGold()

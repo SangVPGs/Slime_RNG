@@ -12,10 +12,24 @@ public class GachaSystem : MonoBehaviour
     [Header("Display Roll Rarity Weights")]
     [SerializeField] private List<RarityWeightConfig> displayRarityWeights = new();
 
+    [Header("Special Reward")]
+    [SerializeField, Range(0f, 1f)] private float specialChance = 0.08f;
+    [SerializeField] private List<GachaSpecialWeightConfig> specialWeights = new();
+
+    [Header("Display Special Reward")]
+    // [SerializeField, Range(0f, 1f)] private float displayBonusChance = 0.06f;
+    [SerializeField, Range(0f, 1f)] private float displayCloverChance = 0.06f;
+
+    private int cloverCount;
+
     public IReadOnlyList<PetUnitData> Pets => petDatabase != null ? petDatabase.Pets : null;
 
     public static GachaSystem Instance { get; private set; }
+
     public float CurrentLuck => GetCurrentLuck();
+    public int CloverCount => cloverCount;
+    public float CloverLuckMultiplier => GetCloverLuckMultiplier();
+    public float CurrentFinalLuck => GetCurrentLuck() * GetCloverLuckMultiplier();
 
     private void Awake()
     {
@@ -28,12 +42,71 @@ public class GachaSystem : MonoBehaviour
         Instance = this;
     }
 
-    public PetUnitData RollPet()
+    public void ResetClover()
+    {
+        cloverCount = 0;
+    }
+
+    public GachaReward RollReward(int columnIndex, int maxColumns)
     {
         if (!HasValidDatabase())
             return null;
 
-        PetRarity rarity = RollRarityFromWeights(rarityWeights);
+        if (columnIndex <= 0)
+            ResetClover();
+
+        bool isLastColumn = columnIndex >= maxColumns - 1;
+        bool allowClover = !isLastColumn;
+
+        if (Random.value < specialChance)
+        {
+            GachaReward specialReward = RollSpecialReward(allowClover);
+
+            if (specialReward != null)
+            {
+                if (specialReward.IsClover)
+                    AddClover();
+
+                return specialReward;
+            }
+        }
+
+        PetUnitData pet = RollPet(GetCloverLuckMultiplier());
+
+        if (pet == null)
+            return null;
+
+        return GachaReward.Pet(pet);
+    }
+
+    public GachaReward GetRandomDisplayReward(int columnIndex, int maxColumns)
+    {
+        bool isLastColumn = columnIndex >= maxColumns - 1;
+        bool allowClover = !isLastColumn;
+
+        float value = Random.value;
+
+        // Bonus tạm khóa.
+        // if (value < displayBonusChance)
+        //     return GachaReward.Bonus();
+
+        if (allowClover && value < displayCloverChance)
+            return GachaReward.Clover();
+
+        return GachaReward.Pet(GetRandomDisplayPet());
+    }
+
+    public PetUnitData RollPet()
+    {
+        return RollPet(1f);
+    }
+
+    private PetUnitData RollPet(float luckMultiplier)
+    {
+        if (!HasValidDatabase())
+            return null;
+
+        PetRarity rarity = RollRarityFromWeights(rarityWeights, luckMultiplier);
         return RollPetByRarity(rarity);
     }
 
@@ -42,8 +115,7 @@ public class GachaSystem : MonoBehaviour
         if (!HasValidDatabase())
             return null;
 
-        PetRarity rarity = RollRarityFromWeights(displayRarityWeights);
-
+        PetRarity rarity = RollRarityFromWeights(displayRarityWeights, 1f);
         PetUnitData pet = RollPetByRarity(rarity);
 
         if (pet != null)
@@ -52,7 +124,84 @@ public class GachaSystem : MonoBehaviour
         return GetRandomPetFromDatabase();
     }
 
-    private PetRarity RollRarityFromWeights(List<RarityWeightConfig> weights)
+    private GachaReward RollSpecialReward(bool allowClover)
+    {
+        if (specialWeights == null || specialWeights.Count == 0)
+            return null;
+
+        float totalWeight = 0f;
+
+        foreach (GachaSpecialWeightConfig config in specialWeights)
+        {
+            if (!IsValidSpecialConfig(config, allowClover))
+                continue;
+
+            totalWeight += Mathf.Max(0f, config.weight);
+        }
+
+        if (totalWeight <= 0f)
+            return null;
+
+        float value = Random.Range(0f, totalWeight);
+
+        foreach (GachaSpecialWeightConfig config in specialWeights)
+        {
+            if (!IsValidSpecialConfig(config, allowClover))
+                continue;
+
+            float weight = Mathf.Max(0f, config.weight);
+
+            if (value < weight)
+                return CreateSpecialReward(config.rewardType);
+
+            value -= weight;
+        }
+
+        return null;
+    }
+
+    private bool IsValidSpecialConfig(GachaSpecialWeightConfig config, bool allowClover)
+    {
+        if (config == null)
+            return false;
+
+        if (config.rewardType == GachaRewardType.Pet)
+            return false;
+
+        // Bonus tạm khóa.
+        if (config.rewardType == GachaRewardType.Bonus)
+            return false;
+
+        if (!allowClover && config.rewardType == GachaRewardType.Clover)
+            return false;
+
+        return config.weight > 0f;
+    }
+
+    private GachaReward CreateSpecialReward(GachaRewardType rewardType)
+    {
+        return rewardType switch
+        {
+            // GachaRewardType.Bonus => GachaReward.Bonus(),
+            GachaRewardType.Clover => GachaReward.Clover(),
+            _ => null
+        };
+    }
+
+    private void AddClover()
+    {
+        cloverCount++;
+    }
+
+    private float GetCloverLuckMultiplier()
+    {
+        if (cloverCount <= 0)
+            return 1f;
+
+        return Mathf.Pow(2f, cloverCount);
+    }
+
+    private PetRarity RollRarityFromWeights(List<RarityWeightConfig> weights, float luckMultiplier)
     {
         if (weights == null || weights.Count == 0)
         {
@@ -60,8 +209,8 @@ public class GachaSystem : MonoBehaviour
             return default;
         }
 
+        float luck = GetCurrentLuck() * Mathf.Max(1f, luckMultiplier);
         float totalWeight = 0f;
-        float luck = GetCurrentLuck();
 
         foreach (RarityWeightConfig config in weights)
         {
@@ -95,7 +244,13 @@ public class GachaSystem : MonoBehaviour
             value -= weight;
         }
 
-        return weights[weights.Count - 1].rarity;
+        for (int i = weights.Count - 1; i >= 0; i--)
+        {
+            if (weights[i] != null)
+                return weights[i].rarity;
+        }
+
+        return default;
     }
 
     private float GetCurrentLuck()
@@ -103,7 +258,7 @@ public class GachaSystem : MonoBehaviour
         if (PlayerStatContext.Instance == null)
             return 1f;
 
-        return PlayerStatContext.Instance.GetFinalStat(UpgradeStatType.Luck,1f);
+        return PlayerStatContext.Instance.GetFinalStat(UpgradeStatType.Luck, 1f);
     }
 
     public string GetCurrentRateText()
@@ -111,7 +266,10 @@ public class GachaSystem : MonoBehaviour
         if (rarityWeights == null || rarityWeights.Count == 0)
             return "Rate: N/A";
 
-        float luck = GetCurrentLuck();
+        float baseLuck = GetCurrentLuck();
+        float cloverMultiplier = GetCloverLuckMultiplier();
+        float finalLuck = baseLuck * cloverMultiplier;
+
         float totalWeight = 0f;
 
         foreach (RarityWeightConfig config in rarityWeights)
@@ -119,7 +277,7 @@ public class GachaSystem : MonoBehaviour
             if (config == null)
                 continue;
 
-            totalWeight += GetAdjustedWeight(config, luck);
+            totalWeight += GetAdjustedWeight(config, finalLuck);
         }
 
         if (totalWeight <= 0f)
@@ -127,18 +285,23 @@ public class GachaSystem : MonoBehaviour
 
         System.Text.StringBuilder builder = new();
 
-        builder.AppendLine($"Luck: {luck:0.###}");
+        builder.AppendLine($"Luck: {baseLuck:0.###}");
+        builder.AppendLine($"Clover: {cloverCount}");
+        builder.AppendLine($"Clover Luck: x{cloverMultiplier:0.##}");
+        builder.AppendLine($"Final Luck: {finalLuck:0.###}");
 
         foreach (RarityWeightConfig config in rarityWeights)
         {
             if (config == null)
                 continue;
 
-            float weight = GetAdjustedWeight(config, luck);
+            float weight = GetAdjustedWeight(config, finalLuck);
             float percent = weight / totalWeight * 100f;
 
             builder.AppendLine($"{config.rarity}: {percent:0.###}%");
         }
+
+        builder.AppendLine($"Special: {specialChance * 100f:0.##}%");
 
         return builder.ToString();
     }
@@ -146,8 +309,7 @@ public class GachaSystem : MonoBehaviour
     private float GetAdjustedWeight(RarityWeightConfig config, float luck)
     {
         int rarityIndex = Mathf.Max(0, (int)config.rarity);
-
-        return config.baseWeight * Mathf.Pow(luck, rarityIndex); // Công thức tính
+        return config.baseWeight * Mathf.Pow(luck, rarityIndex);
     }
 
     private PetUnitData RollPetByRarity(PetRarity rarity)
@@ -166,6 +328,9 @@ public class GachaSystem : MonoBehaviour
     private List<PetUnitData> GetPetsByRarity(PetRarity rarity)
     {
         List<PetUnitData> result = new();
+
+        if (!HasValidDatabase())
+            return result;
 
         foreach (PetUnitData pet in petDatabase.Pets)
         {

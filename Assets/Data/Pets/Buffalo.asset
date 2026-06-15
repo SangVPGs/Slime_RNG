@@ -22,7 +22,7 @@ MonoBehaviour:
   baseSpeed: 6
   baseHeal: 80
   rarity: 3
-  icon: {fileID: 0}
+  icon: {fileID: -634328938, guid: c2ffa0261fbd28f4f8d2ac84f6b02279, type: 3}
   hpGrowthMultiplier: 1.12
   atkGrowthMultiplier: 1.08
   healGrowthMultiplier: 1.05

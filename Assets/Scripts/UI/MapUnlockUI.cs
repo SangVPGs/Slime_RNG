@@ -10,7 +10,7 @@ public class MapUnlockUI : MonoBehaviour
 
     private MapChunk owner;
 
-    public void Initialize(MapChunk mapChunk, long unlockCost)
+    public void Initialize(MapChunk mapChunk, double unlockCost)
     {
         owner = mapChunk;
 

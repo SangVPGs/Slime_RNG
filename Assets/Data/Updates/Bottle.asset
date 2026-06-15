@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b1bb0c4f47329c24ba618dc7e0232ead, type: 3}
+  m_Name: Bottle
+  m_EditorClassIdentifier: 
+  id: UP033
+  displayName: Bottle
+  icon: {fileID: 21300000, guid: 54bbf2b8f47691748bac4f0fedc8a003, type: 3}
+  description: Unlock bottle
+  parent: {fileID: 11400000, guid: 3994d25dcd9230642b22af2305f2cc17, type: 2}
+  direction: 1
+  cost: 4000
+  effectType: 1
+  targetFunctionId: 
+  targetItem: {fileID: 11400000, guid: 60d907fe8818a154483b33c4c3efb7e0, type: 2}
+  statType: 0
+  statModifierType: 0
+  value: 0

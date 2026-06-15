@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   id: ITM002
   itemName: Egg
-  description: Gain 50 exp
+  description: Gain 100 exp
   icon: {fileID: 21300000, guid: 09ccf297199e9044781580b60fac86ac, type: 3}
   prefab: {fileID: 919132149155446097, guid: 548fbb909eddd8948ac83f95dc266a43, type: 3}
   requireUnlock: 1
@@ -24,5 +24,5 @@ MonoBehaviour:
   itemType: 0
   statType: 0
   modifierType: 0
-  value: 50
+  value: 100
   duration: 0

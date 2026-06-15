@@ -25,6 +25,7 @@ public class UpgradeTreeSystem : MonoBehaviour
 
     private PlayerStatContext PlayerStats => PlayerStatContext.Instance;
     private UnlockItemContext UnlockItems => UnlockItemContext.Instance;
+    private UnlockFuncContext FunctionContext => UnlockFuncContext.Instance;
 
     private void Awake()
     {
@@ -139,7 +140,7 @@ public class UpgradeTreeSystem : MonoBehaviour
         if (IsUnlocked(node))
             return false;
 
-        long finalCost = node.Cost;
+        double finalCost = node.Cost;
 
         if (!CanPay(finalCost))
             return false;
@@ -150,7 +151,7 @@ public class UpgradeTreeSystem : MonoBehaviour
         return IsUnlocked(node.ParentId);
     }
 
-    private bool CanPay(long cost)
+    private bool CanPay(double cost)
     {
         if (cost <= 0)
             return true;
@@ -164,7 +165,7 @@ public class UpgradeTreeSystem : MonoBehaviour
         return GameManager.Instance.HasEnoughGold(cost);
     }
 
-    private bool Pay(long cost)
+    private bool Pay(double cost)
     {
         if (cost <= 0)
             return true;
@@ -183,7 +184,7 @@ public class UpgradeTreeSystem : MonoBehaviour
         if (!CanUnlock(node))
             return false;
 
-        long finalCost = node.Cost;
+        double finalCost = node.Cost;
 
         if (!Pay(finalCost))
             return false;
@@ -231,6 +232,9 @@ public class UpgradeTreeSystem : MonoBehaviour
         if (UnlockItems != null)
             UnlockItems.Clear();
 
+        if (FunctionContext != null)
+            FunctionContext.Clear();
+
         foreach (string nodeId in unlockedNodeOrder)
         {
             UpgradeNodeData node = GetNodeById(nodeId);
@@ -246,6 +250,10 @@ public class UpgradeTreeSystem : MonoBehaviour
 
                 case UpgradeEffectType.UnlockItem:
                     node.ApplyUnlockItem(UnlockItems);
+                    break;
+
+                case UpgradeEffectType.UnlockFunction:
+                    node.ApplyFunction(FunctionContext);
                     break;
             }
         }
@@ -321,20 +329,6 @@ public class UpgradeTreeSystem : MonoBehaviour
         PlayerPrefs.Save();
 
         RebuildUpgradeEffects();
-    }
-
-    [ContextMenu("Debug Upgrade Stats")]
-    private void DebugUpgradeStats()
-    {
-        if (PlayerStats == null)
-        {
-            Debug.LogWarning("PlayerStatContext is missing.");
-            return;
-        }
-
-        Debug.Log($"Luck: {PlayerStats.GetFinalStat(UpgradeStatType.Luck, 1f)}");
-        Debug.Log($"Max Party Size: {PlayerStats.GetFinalStat(UpgradeStatType.MaxPartySize, 4f)}");
-        Debug.Log($"Slime Pool Size: {PlayerStats.GetFinalStat(UpgradeStatType.SlimePoolSize, 5f)}");
     }
 
     [Serializable]

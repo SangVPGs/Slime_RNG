@@ -17,9 +17,6 @@ public class SlimeUnit : Unit
     [Header("Movement")]
     [SerializeField] private float stopDistanceFromPlayer = 2f;
 
-    [Header("Gold Drop")]
-    [SerializeField] private long goldDrop;
-
     private SlimeSpawner spawner;
 
     private bool waitingRespawn;
@@ -282,7 +279,7 @@ public class SlimeUnit : Unit
         return base.Attack(target);
     }
 
-    public override void TakeDamage(long damage)
+    public override void TakeDamage(double damage)
     {
         base.TakeDamage(damage);
     }
@@ -296,6 +293,26 @@ public class SlimeUnit : Unit
 
         if (GameManager.Instance != null)
             GameManager.Instance.AddGold(currentEnemyStat.goldDrop);
+
+        DropPoon();
+    }
+
+    private void DropPoon()
+    {
+        if (UnlockFuncContext.Instance != null && UnlockFuncContext.Instance.IsUnlocked("POON_SYSTEM"))
+        {
+            if (Random.value <= currentEnemyStat.PoonChance)
+            {
+                double poonAmount = currentEnemyStat.PoonDrop;
+
+                if (PlayerStatContext.Instance != null)
+                {
+                    poonAmount = PlayerStatContext.Instance.GetFinalStat(UpgradeStatType.PoonGain, (float)poonAmount);
+                }
+
+                GameManager.Instance.AddPoon(poonAmount);
+            }
+        }
     }
 
     public override bool LevelUp()

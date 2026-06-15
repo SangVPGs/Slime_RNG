@@ -6,6 +6,7 @@ using UnityEditor;
 
 public enum UpgradeEffectType
 {
+    UnlockFunction,
     UnlockItem,
     ChangeStat
 }
@@ -13,10 +14,16 @@ public enum UpgradeEffectType
 public enum UpgradeStatType
 {
     None,
+
     Luck,
+    CloverChance,
+    BonusChance,
+
     MaxPartySize,
     SlimePoolSize,
+
     GoldGain,
+    PoonGain,
 }
 
 public enum UpgradeNodeDirection
@@ -42,9 +49,11 @@ public class UpgradeNodeData : ScriptableObject
 
     [SerializeField] private UpgradeNodeData parent;
     [SerializeField] private UpgradeNodeDirection direction = UpgradeNodeDirection.Right;
-    [SerializeField, Min(0)] private long cost;
+    [SerializeField, Min(0)] private double cost;
 
     [SerializeField] private UpgradeEffectType effectType;
+
+    [SerializeField] private string targetFunctionId;
 
     [SerializeField] private ItemData targetItem;
 
@@ -62,16 +71,31 @@ public class UpgradeNodeData : ScriptableObject
     public bool IsRoot => parent == null;
 
     public UpgradeNodeDirection Direction => direction;
-    public long Cost => cost;
+    public double Cost => cost;
 
     public UpgradeEffectType EffectType => effectType;
 
+    public string TargetFunctionId => targetFunctionId;
     public ItemData TargetItem => targetItem;
     public string TargetId => targetItem != null ? targetItem.Id : string.Empty;
 
     public UpgradeStatType StatType => statType;
     public StatModifierType StatModifierType => statModifierType;
     public float Value => value;
+
+    public void ApplyFunction(UnlockFuncContext context)
+    {
+        if (context == null)
+            return;
+
+        if (effectType != UpgradeEffectType.UnlockFunction)
+            return;
+
+        if (string.IsNullOrWhiteSpace(targetFunctionId))
+            return;
+
+        context.Unlock(targetFunctionId);
+    }
 
     public void ApplyStat(PlayerStatContext playerStats)
     {
@@ -141,6 +165,14 @@ public class UpgradeNodeData : ScriptableObject
     {
         switch (effectType)
         {
+            case UpgradeEffectType.UnlockFunction:
+                targetItem = null;
+
+                statType = UpgradeStatType.None;
+                statModifierType = StatModifierType.Flat;
+                value = 0f;
+                break;
+
             case UpgradeEffectType.UnlockItem:
                 statType = UpgradeStatType.None;
                 statModifierType = StatModifierType.Flat;

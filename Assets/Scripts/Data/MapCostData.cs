@@ -9,15 +9,19 @@ public class MapCostData : ScriptableObject
     private class CostEntry
     {
         public int level;
-        public long cost;
-        public long goldDrop;
+        public double cost;
+        public double goldDrop;
+
+        [Range(0f, 1f)]
+        public float poonChance = 0.3f;
+        public long poonDrop;
     }
 
-    [SerializeField] private long defaultCost = 100;
+    [SerializeField] private double defaultCost = 100;
     [SerializeField] private float overflowMultiplier = 2.5f;
     [SerializeField] private List<CostEntry> costs = new();
 
-    public long GetCost(int level)
+    public double GetCost(int level)
     {
         if (level <= 0)
             return 0;
@@ -38,13 +42,13 @@ public class MapCostData : ScriptableObject
         }
 
         if (exactEntry != null)
-            return Math.Max(0, exactEntry.cost);
+            return (double)Math.Max(0, exactEntry.cost);
 
         if (highestEntry == null)
             return defaultCost;
 
         if (level > highestEntry.level)
-            return (long)Math.Round(highestEntry.cost * overflowMultiplier);
+            return (double)Math.Round(highestEntry.cost * overflowMultiplier);
 
         return defaultCost;
     }

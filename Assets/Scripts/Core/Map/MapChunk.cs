@@ -24,11 +24,11 @@ public class MapChunk : MonoBehaviour
 
     private int runtimeLevel;
 
-    private long unlockCost;
-    public long UnlockCost => unlockCost;
+    private double unlockCost;
+    public double UnlockCost => unlockCost;
     private bool isUnlocked;
 
-    public void Initialize(MapData mapData, int level, long cost)
+    public void Initialize(MapData mapData, int level, double cost)
     {
         data = mapData;
         runtimeLevel = level;

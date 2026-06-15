@@ -4,16 +4,14 @@ using UnityEngine.UI;
 
 public class GachaUI : MonoBehaviour
 {
-    [Header("Result")]
-    [SerializeField] private GachaResultView resultView;
-
     [Header("Rate")]
     [SerializeField] private TMP_Text rateText;
 
     [Header("Buttons")]
     [SerializeField] private GameObject hideButton;
+    [SerializeField] private GameObject autoRollButton;
 
-    [Header("Auto Roll Button")]
+    [Header("Auto Roll Visual")]
     [SerializeField] private Image autoRollButtonImage;
     [SerializeField] private TMP_Text autoRollButtonText;
 
@@ -33,40 +31,24 @@ public class GachaUI : MonoBehaviour
         if (rateText == null)
             return;
 
-        if (GachaSystem.Instance == null)
-        {
-            rateText.text = "Rate: N/A";
-            return;
-        }
-
-        rateText.text = GachaSystem.Instance.GetCurrentRateText();
+        rateText.text = GachaSystem.Instance != null
+            ? GachaSystem.Instance.GetCurrentRateText()
+            : "Rate: N/A";
     }
 
-    public void ShowRollingPet(PetUnitData pet)
+    public void ShowFullControls(bool showHideButton)
     {
-        if (resultView != null)
-            resultView.ShowRollingPet(pet);
+        RefreshRate();
+        SetHideButtonVisible(showHideButton);
     }
 
-    public void ShowFinalPet(PetUnitData pet)
-    {
-        if (resultView != null)
-            resultView.ShowFinalPet(pet);
-    }
-
-    public void ClearResult()
-    {
-        if (resultView != null)
-            resultView.Clear();
-    }
-
-    public void SetAutoRollVisual(bool isRolling)
+    public void SetAutoRollVisual(bool isAutoRolling)
     {
         if (autoRollButtonImage != null)
-            autoRollButtonImage.color = isRolling ? rollingColor : normalColor;
+            autoRollButtonImage.color = isAutoRolling ? rollingColor : normalColor;
 
         if (autoRollButtonText != null)
-            autoRollButtonText.color = isRolling ? activeTextColor : normalTextColor;
+            autoRollButtonText.color = isAutoRolling ? activeTextColor : normalTextColor;
     }
 
     public void SetHideButtonVisible(bool visible)

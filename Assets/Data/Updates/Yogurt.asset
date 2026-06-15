@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b1bb0c4f47329c24ba618dc7e0232ead, type: 3}
+  m_Name: Yogurt
+  m_EditorClassIdentifier: 
+  id: UP034
+  displayName: Yogurt
+  icon: {fileID: 21300000, guid: ac638085200338c40ac41ae024e3727d, type: 3}
+  description: Unlock Yogurt
+  parent: {fileID: 11400000, guid: a957092635a71064d8657b924492b6bc, type: 2}
+  direction: 0
+  cost: 1000000
+  effectType: 1
+  targetFunctionId: 
+  targetItem: {fileID: 11400000, guid: d3d0b16eba2f88849bd31f96aa1aaf2d, type: 2}
+  statType: 0
+  statModifierType: 0
+  value: 0

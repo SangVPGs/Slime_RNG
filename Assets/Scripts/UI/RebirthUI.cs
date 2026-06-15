@@ -6,36 +6,68 @@ public class RebirthUI : MonoBehaviour
     private RebirthSystem rebirthSystem => RebirthSystem.Instance;
 
     [Header("Texts")]
-    [SerializeField] private TMP_Text mapTitleText;
-    [SerializeField] private TMP_Text goldTitleText;
-    [SerializeField] private TMP_Text luckTitleText;
+    [SerializeField] private TMP_Text currentMapText;
+    [SerializeField] private TMP_Text currentGoldText;
+    [SerializeField] private TMP_Text currentLuckText;
+    [SerializeField] private TMP_Text newLuckText;
     [SerializeField] private TMP_Text costText;
 
-    private void Start()
+    private void OnEnable()
     {
-        Refresh();
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.OnGoldChanged += Refresh;
+            GameManager.Instance.OnPoonChanged += Refresh;
+            MapUnlockSave.OnMapUnlocked += Refresh;
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.OnGoldChanged -= Refresh;
+            GameManager.Instance.OnPoonChanged -= Refresh;
+            MapUnlockSave.OnMapUnlocked -= Refresh;
+        }
     }
 
     public void Refresh()
     {
-        int currentMapLevel = MapProgressSave.LoadCurrentMapLevel();
+        int currentMapLevel = MapUnlockSave.GetHighestUnlockedMap();
 
-        long currentGold = GameManager.Instance != null ? GameManager.Instance.Gold : 0;
+        double currentGold;
+        double currentPoon;
+
+        if (GameManager.Instance != null)
+        {
+            currentGold = GameManager.Instance.Gold;
+            currentPoon = GameManager.Instance.Poon;
+        }
+        else
+        {
+            currentGold = 0;
+            currentPoon = 0;
+        }
+        
 
         float currentLuck = PlayerStatContext.Instance != null ? PlayerStatContext.Instance.GetFinalStat(UpgradeStatType.Luck, 1f) : 1f;
 
         float nextLuck = rebirthSystem != null ? currentLuck * rebirthSystem.LuckMultiplierPerRebirth : currentLuck;
 
-        if (mapTitleText != null)
-            mapTitleText.text = $"Map: Lv {currentMapLevel} => Lv 1";
+        if (currentMapText != null)
+            currentMapText.text = $"{currentMapLevel}";
 
-        if (goldTitleText != null)
-            goldTitleText.text = $"Gold: {NumberFormatter.Format(currentGold)} => 0";
+        if (currentGoldText != null)
+            currentGoldText.text = $"{NumberFormatter.Format(currentGold)}";
 
-        if (luckTitleText != null)
-            luckTitleText.text = $"Luck: {currentLuck:0.###} => {nextLuck:0.###}";
+        if (currentLuckText != null)
+            currentLuckText.text = $"{currentLuck:0.###}";
+
+        if(newLuckText != null)
+            newLuckText.text = $"{nextLuck:0.###}";
 
         if (costText != null && rebirthSystem != null)
-            costText.text = $"Cost: {NumberFormatter.Format(rebirthSystem.CurrentGoldCost)} Gold"; // phải thay bằng "goon"
+            costText.text = $"{NumberFormatter.Format(currentPoon)} / {NumberFormatter.Format(rebirthSystem.CurrentPoonCost)}";
     }
 }

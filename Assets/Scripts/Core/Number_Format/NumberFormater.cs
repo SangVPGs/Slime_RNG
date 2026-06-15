@@ -23,7 +23,7 @@ public static class NumberFormatter
         "Qid",
     };
 
-    public static string Format(long value)
+    public static string Format(double value)
     {
         if (value < 1000)
             return value.ToString();

@@ -12,15 +12,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b1bb0c4f47329c24ba618dc7e0232ead, type: 3}
   m_Name: Luck 1
   m_EditorClassIdentifier: 
-  id: UP005
+  id: UP014
   displayName: Luck 1
-  icon: {fileID: 21300000, guid: e696fd330fd78de408371624a4411c80, type: 3}
-  description: Increase luck 10%
-  parent: {fileID: 11400000, guid: 1d7b805a50613724b8ba4104b94f564a, type: 2}
-  direction: 0
-  cost: 1000
-  effectType: 1
+  icon: {fileID: 0}
+  description: Increases luck by 20%
+  parent: {fileID: 11400000, guid: 967d9b78909e76a48bee6f7405db3ab1, type: 2}
+  direction: 5
+  cost: 1500
+  effectType: 2
+  targetFunctionId: 
   targetItem: {fileID: 0}
   statType: 1
   statModifierType: 1
-  value: 10
+  value: 20

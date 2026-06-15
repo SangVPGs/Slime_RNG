@@ -96,9 +96,9 @@ public class PetUnit : Unit
 
         data = entry.petData;
 
-        float hpPercent = maxHp > 0
-            ? Mathf.Clamp01((float)currentHp / maxHp)
-            : 1f;
+        double hpPercent = maxHp > 0
+            ? Mathf.Clamp01((float)((double)currentHp / maxHp))
+            : 1d;
 
         currentLevel = Mathf.Clamp(
             entry.level,
@@ -108,7 +108,7 @@ public class PetUnit : Unit
 
         RecalculateStats();
 
-        currentHp = Mathf.RoundToInt(maxHp * hpPercent);
+        currentHp = Math.Round(maxHp * hpPercent);
 
         if (currentHp <= 0 && !IsDead)
             currentHp = maxHp;

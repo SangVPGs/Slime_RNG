@@ -6,7 +6,7 @@ public class RebirthSystem : MonoBehaviour
     private const string RebirthCountKey = "Rebirth_Count";
 
     [Header("Cost")]
-    [SerializeField, Min(0)] private int baseGoldCost = 1000;
+    [SerializeField, Min(0)] private int basePoonCost = 1000;
     [SerializeField, Min(1f)] private float costMultiplierPerRebirth = 5f;
 
     [Header("Luck")]
@@ -17,11 +17,11 @@ public class RebirthSystem : MonoBehaviour
 
     public int RebirthCount => PlayerPrefs.GetInt(RebirthCountKey, 0);
 
-    public int CurrentGoldCost
+    public int CurrentPoonCost
     {
         get
         {
-            double cost = baseGoldCost * System.Math.Pow(
+            double cost = basePoonCost * System.Math.Pow(
                 costMultiplierPerRebirth,
                 RebirthCount
             );
@@ -70,9 +70,9 @@ public class RebirthSystem : MonoBehaviour
             return false;
         }
 
-        if (!GameManager.Instance.HasEnoughGold(CurrentGoldCost))
+        if (!GameManager.Instance.HasEnoughPoon(CurrentPoonCost))
         {
-            Debug.LogWarning($"Not enough gold. Need: {CurrentGoldCost}");
+            Debug.LogWarning($"Not enough poon. Need: {CurrentPoonCost}");
             return false;
         }
 
@@ -87,7 +87,7 @@ public class RebirthSystem : MonoBehaviour
 
     private void SpendCost()
     {
-        GameManager.Instance.SpendGold(CurrentGoldCost);
+        GameManager.Instance.SpendPoon(CurrentPoonCost);
     }
 
     private void ResetProgress()

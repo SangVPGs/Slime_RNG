@@ -6,12 +6,15 @@ using UnityEngine.UI;
 public class UpgradeNodeView : MonoBehaviour, IPointerClickHandler
 {
     [Header("UI")]
-    [SerializeField] private TMP_Text nameText;
+    [SerializeField] private Image backgroundImage;
     [SerializeField] private Image iconImage;
-
-    [Header("Lock")]
-    [SerializeField] private GameObject lockOverlay;
+    [SerializeField] private TMP_Text nameText;
     [SerializeField] private TMP_Text costText;
+    [SerializeField] private GameObject costRoot;
+
+    [Header("Colors")]
+    [SerializeField] private Color unlockedBackgroundColor = Color.white;
+    [SerializeField] private Color lockedBackgroundColor = Color.black;
 
     [Header("State Visual")]
     [SerializeField] private GameObject unlockedMark;
@@ -39,7 +42,6 @@ public class UpgradeNodeView : MonoBehaviour, IPointerClickHandler
         this.node = node;
 
         ResolveCanvasGroup();
-
         Refresh();
     }
 
@@ -48,9 +50,6 @@ public class UpgradeNodeView : MonoBehaviour, IPointerClickHandler
         visible = value;
 
         ResolveCanvasGroup();
-
-        if (canvasGroup == null)
-            return;
 
         canvasGroup.alpha = value ? 1f : 0f;
         canvasGroup.interactable = value;
@@ -78,7 +77,7 @@ public class UpgradeNodeView : MonoBehaviour, IPointerClickHandler
         if (iconImage != null)
         {
             iconImage.sprite = node.Icon;
-            iconImage.gameObject.SetActive(node.Icon != null);
+            iconImage.enabled = node.Icon != null;
         }
 
         if (costText != null)
@@ -94,8 +93,18 @@ public class UpgradeNodeView : MonoBehaviour, IPointerClickHandler
         bool unlocked = treeSystem.IsUnlocked(node);
         bool canUnlock = treeSystem.CanUnlock(node);
 
-        if (lockOverlay != null)
-            lockOverlay.SetActive(!unlocked);
+        if (backgroundImage != null)
+        {
+            backgroundImage.color = unlocked
+                ? unlockedBackgroundColor
+                : lockedBackgroundColor;
+        }
+
+        if (costRoot != null)
+            costRoot.SetActive(!unlocked);
+
+        if (costText != null)
+            costText.gameObject.SetActive(!unlocked);
 
         if (unlockedMark != null)
             unlockedMark.SetActive(unlocked);

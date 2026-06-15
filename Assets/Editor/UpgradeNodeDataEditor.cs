@@ -13,7 +13,9 @@ public class UpgradeNodeDataEditor : Editor
     private SerializedProperty cost;
 
     private SerializedProperty effectType;
+
     private SerializedProperty targetItem;
+    private SerializedProperty targetFunctionId;
 
     private SerializedProperty statType;
     private SerializedProperty statModifierType;
@@ -31,6 +33,7 @@ public class UpgradeNodeDataEditor : Editor
 
         effectType = serializedObject.FindProperty("effectType");
         targetItem = serializedObject.FindProperty("targetItem");
+        targetFunctionId = serializedObject.FindProperty("targetFunctionId");
 
         statType = serializedObject.FindProperty("statType");
         statModifierType = serializedObject.FindProperty("statModifierType");
@@ -99,6 +102,10 @@ public class UpgradeNodeDataEditor : Editor
 
         switch (selectedEffect)
         {
+            case UpgradeEffectType.UnlockFunction:
+                EditorGUILayout.PropertyField(targetFunctionId);
+                break;
+
             case UpgradeEffectType.UnlockItem:
                 EditorGUILayout.PropertyField(targetItem);
                 break;

@@ -2,18 +2,18 @@ using UnityEngine;
 
 public static class PlayerPrefsUtility
 {
-    public static void SetLong(string key, long value)
+    public static void SetDouble(string key, double value)
     {
         PlayerPrefs.SetString(key, value.ToString());
     }
 
-    public static long GetLong(string key, long defaultValue = 0)
+    public static double GetDouble(string key, double defaultValue = 0)
     {
         string value = PlayerPrefs.GetString(
             key,
             defaultValue.ToString());
 
-        if (long.TryParse(value, out long result))
+        if (double.TryParse(value, out double result))
             return result;
 
         return defaultValue;

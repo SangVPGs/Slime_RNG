@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Map 2
   m_EditorClassIdentifier: 
   level: 2
-  mapPrefab: {fileID: 6807517083651868280, guid: 500148650a574f3409a4f55bbfa5ea9f,
+  mapPrefab: {fileID: 646257893302084318, guid: 095629d7fc945e047a74332bda878e91,
     type: 3}
   enemies:
   - {fileID: 11400000, guid: 7a8bffc04bb328148adc995921df2d4d, type: 2}

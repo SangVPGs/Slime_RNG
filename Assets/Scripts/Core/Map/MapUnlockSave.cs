@@ -1,8 +1,12 @@
 using UnityEngine;
+using System;
 
 public static class MapUnlockSave
 {
     private const string KeyPrefix = "UnlockedMap_";
+    private const string HighestUnlockedMapKey = "HighestUnlockedMap";
+
+    public static event Action OnMapUnlocked;
 
     public static bool IsUnlocked(int level)
     {
@@ -18,7 +22,19 @@ public static class MapUnlockSave
             return;
 
         PlayerPrefs.SetInt(GetKey(level), 1);
+
+        int currentHighest = PlayerPrefs.GetInt(HighestUnlockedMapKey, 1);
+
+        if (level > currentHighest)
+            PlayerPrefs.SetInt(HighestUnlockedMapKey, level);
+
         PlayerPrefs.Save();
+        OnMapUnlocked?.Invoke();
+    }
+
+    public static int GetHighestUnlockedMap()
+    {
+        return PlayerPrefs.GetInt(HighestUnlockedMapKey, 1);
     }
 
     public static void ClearUnlocked(int level)
