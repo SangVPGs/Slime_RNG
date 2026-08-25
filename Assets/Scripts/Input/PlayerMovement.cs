@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 [RequireComponent(typeof(CharacterController))]
 public class PlayerMovement : MonoBehaviour
@@ -142,7 +143,7 @@ public class PlayerMovement : MonoBehaviour
         TryJump();
     }
 
-    public void OnBtnJumpClicked()
+    public void OnBtnJumpPressed()
     {
         TryJump();
     }

@@ -1,0 +1,215 @@
+using UnityEngine;
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
+public enum UpgradeEffectType
+{
+    UnlockFunction,
+    UnlockItem,
+    ChangeStat
+}
+
+public enum UpgradeStatType
+{
+    None,
+
+    Luck,
+    CloverChance,
+    BonusChance,
+
+    MaxPartySize,
+    SlimePoolSize,
+
+    GoldGain,
+    PoonGain,
+}
+
+public enum UpgradeNodeDirection
+{
+    Right,
+    UpRight,
+    Up,
+    UpLeft,
+    Left,
+    DownLeft,
+    Down,
+    DownRight
+}
+
+[CreateAssetMenu(menuName = "Game/Upgrade Node")]
+public class UpgradeNodeData : ScriptableObject
+{
+    [SerializeField, HideInInspector] private string id;
+
+    [SerializeField] private string displayName;
+    [SerializeField] private Sprite icon;
+    [SerializeField, TextArea(2, 5)] private string description;
+
+    [SerializeField] private UpgradeNodeData parent;
+    [SerializeField] private UpgradeNodeDirection direction = UpgradeNodeDirection.Right;
+    [SerializeField, Min(0)] private double cost;
+
+    [SerializeField] private UpgradeEffectType effectType;
+
+    [SerializeField] private string targetFunctionId;
+
+    [SerializeField] private ItemData targetItem;
+
+    [SerializeField] private UpgradeStatType statType;
+    [SerializeField] private StatModifierType statModifierType;
+    [SerializeField] private float value;
+
+    public string Id => id;
+    public string DisplayName => displayName;
+    public Sprite Icon => icon;
+    public string Description => description;
+
+    public UpgradeNodeData Parent => parent;
+    public string ParentId => parent != null ? parent.Id : string.Empty;
+    public bool IsRoot => parent == null;
+
+    public UpgradeNodeDirection Direction => direction;
+    public double Cost => cost;
+
+    public UpgradeEffectType EffectType => effectType;
+
+    public string TargetFunctionId => targetFunctionId;
+    public ItemData TargetItem => targetItem;
+    public string TargetId => targetItem != null ? targetItem.Id : string.Empty;
+
+    public UpgradeStatType StatType => statType;
+    public StatModifierType StatModifierType => statModifierType;
+    public float Value => value;
+
+    public void ApplyFunction(UnlockFuncContext context)
+    {
+        if (context == null)
+            return;
+
+        if (effectType != UpgradeEffectType.UnlockFunction)
+            return;
+
+        if (string.IsNullOrWhiteSpace(targetFunctionId))
+            return;
+
+        context.Unlock(targetFunctionId);
+    }
+
+    public void ApplyStat(PlayerStatContext playerStats)
+    {
+        if (playerStats == null)
+            return;
+
+        if (effectType != UpgradeEffectType.ChangeStat)
+            return;
+
+        playerStats.UpgradeStats.AddStat(
+            statType,
+            statModifierType,
+            value
+        );
+    }
+
+    public void ApplyUnlockItem(UnlockItemContext unlockContext)
+    {
+        if (unlockContext == null)
+            return;
+
+        if (effectType != UpgradeEffectType.UnlockItem)
+            return;
+
+        if (targetItem == null)
+            return;
+
+        unlockContext.UnlockItem(targetItem.Id);
+    }
+
+#if UNITY_EDITOR
+    private void OnValidate()
+    {
+        ValidateParent();
+        ValidateId();
+        ValidateEffectFields();
+    }
+
+    private void ValidateParent()
+    {
+        if (parent == this)
+        {
+            parent = null;
+            Debug.LogError($"Upgrade node '{name}' cannot be its own parent.", this);
+            EditorUtility.SetDirty(this);
+            return;
+        }
+
+        if (HasCircularParent())
+        {
+            parent = null;
+            Debug.LogError($"Upgrade node '{name}' has circular parent reference. Parent has been cleared.", this);
+            EditorUtility.SetDirty(this);
+        }
+    }
+
+    private void ValidateId()
+    {
+        if (!string.IsNullOrWhiteSpace(id))
+            return;
+
+        id = GenerateId();
+        EditorUtility.SetDirty(this);
+    }
+
+    private void ValidateEffectFields()
+    {
+        switch (effectType)
+        {
+            case UpgradeEffectType.UnlockFunction:
+                targetItem = null;
+
+                statType = UpgradeStatType.None;
+                statModifierType = StatModifierType.Flat;
+                value = 0f;
+                break;
+
+            case UpgradeEffectType.UnlockItem:
+                statType = UpgradeStatType.None;
+                statModifierType = StatModifierType.Flat;
+                value = 0f;
+                break;
+
+            case UpgradeEffectType.ChangeStat:
+                targetItem = null;
+
+                if (statType == UpgradeStatType.None)
+                    statType = UpgradeStatType.Luck;
+
+                break;
+        }
+    }
+
+    private bool HasCircularParent()
+    {
+        UpgradeNodeData current = parent;
+
+        while (current != null)
+        {
+            if (current == this)
+                return true;
+
+            current = current.Parent;
+        }
+
+        return false;
+    }
+
+    private string GenerateId()
+    {
+        string[] guids = AssetDatabase.FindAssets("t:UpgradeNodeData");
+        int count = guids.Length;
+
+        return $"UP{count:000}";
+    }
+#endif
+}

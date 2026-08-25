@@ -1,81 +1,199 @@
+using System.Collections.Generic;
+using System.Linq;
+using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class PetInventoryUI : MonoBehaviour
 {
-    [Header("System")]
-    [SerializeField] private InventorySystem inventorySystem;
-    [SerializeField] private PartySystem partySystem;
+    private InventorySystem inventorySystem;
+    private PartySystem partySystem;
 
     [Header("UI")]
     [SerializeField] private Transform contentParent;
-    [SerializeField] private PetUIItem petItemPrefab;
+    [SerializeField] private PetInventoryUIItem petItemPrefab;
+
+    [Header("UI Text")]
+    [SerializeField] private TMP_Text sortTypeText;
+    [SerializeField] private TMP_Text sortDirectionText;
+    [SerializeField] private TMP_Text autoEquipText;
+
+    [Header("Auto Equip Btn")]
+    [SerializeField] private Image autoEquipButtonImage;
+    [SerializeField] private Color autoEquipOnColor = Color.green;
+    [SerializeField] private Color autoEquipOffColor = Color.red;
+
+    private bool descending = true;
+    private bool sortByRarity = false;
+
+    private List<InventorySystem.PetInventoryEntry> currentEntries = new();
 
     private void OnEnable()
     {
+        ResolveSystems();
+
         if (inventorySystem != null)
-            inventorySystem.OnInventoryChanged += ShowPets;
+            inventorySystem.OnInventoryChanged += Refresh;
+
+        if (partySystem != null)
+            partySystem.OnPartyChanged += Refresh;
     }
 
     private void OnDisable()
     {
         if (inventorySystem != null)
-            inventorySystem.OnInventoryChanged -= ShowPets;
+            inventorySystem.OnInventoryChanged -= Refresh;
+
+        if (partySystem != null)
+            partySystem.OnPartyChanged -= Refresh;
     }
 
     private void Start()
     {
-        ShowPets();
+        Refresh();
     }
 
-    public void ShowPets()
+    private void ResolveSystems()
     {
+        if (partySystem == null)
+        {
+            partySystem = PartySystem.Instance;
+
+            if (partySystem == null)
+                partySystem = FindFirstObjectByType<PartySystem>();
+        }
+
         if (inventorySystem == null)
         {
-            Debug.LogError("InventorySystem missing.");
-            return;
-        }
+            inventorySystem = InventorySystem.Instance;
 
-        if (inventorySystem.Data == null)
+            if (inventorySystem == null)
+                inventorySystem = FindFirstObjectByType<InventorySystem>();
+        }
+    }
+
+    public void ToggleSortDirection()
+    {
+        descending = !descending;
+        Refresh();
+    }
+
+    public void ToggleSortType()
+    {
+        sortByRarity = !sortByRarity;
+        Refresh();
+    }
+
+    public void ToggleAutoEquip()
+    {
+        if (partySystem == null)
+            return;
+
+        partySystem.ToggleAutoEquip();
+        Refresh();
+    }
+
+    private void Refresh()
+    {
+        UpdateAutoEquipBtnUI();
+        BuildEntries();
+        ApplySort();
+        RefreshUI();
+    }
+
+    private void UpdateAutoEquipBtnUI()
+    {
+        if (partySystem == null)
+            return;
+
+        bool autoEquip = partySystem.AutoEquip;
+
+        if (autoEquipText != null)
+            autoEquipText.text = autoEquip ? "ON" : "OFF";
+
+        if (autoEquipButtonImage != null)
+            autoEquipButtonImage.color = autoEquip
+                ? autoEquipOnColor
+                : autoEquipOffColor;
+    }
+
+    private void BuildEntries()
+    {
+        currentEntries.Clear();
+
+        if (inventorySystem == null || inventorySystem.Data == null)
+            return;
+
+        currentEntries = inventorySystem.Data.Pets
+            .Where(entry =>
+                entry != null &&
+                entry.petData != null &&
+                !entry.isInParty)
+            .ToList();
+    }
+
+    private void ApplySort()
+    {
+        if (sortByRarity)
         {
-            Debug.LogError("InventoryData missing.");
-            return;
+            currentEntries = descending
+                ? currentEntries.OrderByDescending(entry => entry.petData.rarity).ToList()
+                : currentEntries.OrderBy(entry => entry.petData.rarity).ToList();
+
+            if (sortTypeText != null)
+                sortTypeText.text = "Rarity";
+        }
+        else
+        {
+            currentEntries = descending
+                ? currentEntries
+                    .OrderByDescending(entry => PetUnit.CalculateCombatPower(entry.petData, entry.level))
+                    .ToList()
+                : currentEntries
+                    .OrderBy(entry => PetUnit.CalculateCombatPower(entry.petData, entry.level))
+                    .ToList();
+
+            if (sortTypeText != null)
+                sortTypeText.text = "CP";
         }
 
+        if (sortDirectionText != null)
+            sortDirectionText.text = descending ? "DESC" : "ASC";
+    }
+
+    private void RefreshUI()
+    {
         if (contentParent == null || petItemPrefab == null)
-        {
-            Debug.LogError("PetInventoryUI UI reference missing.");
             return;
-        }
 
         ClearOldItems();
 
-        foreach (InventorySystem.PetInventoryEntry entry in inventorySystem.Data.Pets)
+        bool canManualEquip = partySystem != null && !partySystem.AutoEquip;
+
+        foreach (InventorySystem.PetInventoryEntry entry in currentEntries)
         {
             if (entry == null || entry.petData == null)
                 continue;
 
-            PetUIItem item = Instantiate(petItemPrefab, contentParent);
+            PetInventoryUIItem item = Instantiate(petItemPrefab, contentParent);
 
-            item.SetupInventory(entry.petData, OnPetClicked);
+            item.SetupPetInventory(
+                entry,
+                OnPetClicked,
+                canManualEquip
+            );
         }
     }
 
-    private void OnPetClicked(PetUnitData petData)
+    private void OnPetClicked(InventorySystem.PetInventoryEntry entry)
     {
-        if (petData == null)
+        if (entry == null || partySystem == null)
             return;
 
-        Debug.Log($"Inventory clicked pet: {petData.unitName}");
-
-        if (partySystem == null)
-        {
-            Debug.LogError("PartySystem missing in PetInventoryUI.");
+        if (partySystem.AutoEquip)
             return;
-        }
 
-        bool success = partySystem.AddPet(petData);
-
-        Debug.Log($"Add pet to party result: {success}");
+        partySystem.AddPet(entry);
     }
 
     private void ClearOldItems()

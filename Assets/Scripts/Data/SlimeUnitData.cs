@@ -4,10 +4,6 @@ using UnityEngine;
 [CreateAssetMenu(menuName = "Game/Unit/Slime")]
 public class SlimeUnitData : UnitData
 {
-    [Header("Slime Info")]
-    public int goldDrop;
-
-
 #if UNITY_EDITOR
     private void OnValidate()
     {

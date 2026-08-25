@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.AI;
 
 public class SlimeUnit : Unit
 {
@@ -17,12 +18,58 @@ public class SlimeUnit : Unit
     [SerializeField] private float stopDistanceFromPlayer = 2f;
 
     private SlimeSpawner spawner;
+
     private bool waitingRespawn;
     private float respawnTimer;
     private float nextScanTime;
 
+    private NavMeshAgent[] navMeshAgents;
+    private NavMeshObstacle[] navMeshObstacles;
+    private Animator[] animators;
+
     public bool IsWaitingRespawn => waitingRespawn;
     public SlimeUnitData SlimeData => data as SlimeUnitData;
+    private EnemyStatData currentEnemyStat;
+
+    protected override void Awake()
+    {
+        base.Awake();
+
+        CacheUnusedComponents();
+        DisableUnusedNavigation();
+        DisableRootMotion();
+    }
+
+    public override void Init(UnitData unitData)
+    {
+        if (unitData is not SlimeUnitData)
+            return;
+
+        base.Init(unitData);
+
+        ResetSlimeRuntime();
+    }
+
+    public override void Init(UnitData unitData, string instanceId)
+    {
+        if (unitData is not SlimeUnitData)
+            return;
+
+        base.Init(unitData, instanceId);
+
+        ResetSlimeRuntime();
+    }
+
+    protected override void RecalculateStats()
+    {
+        base.RecalculateStats();
+
+        if (currentEnemyStat == null)
+            return;
+
+        maxHp = currentEnemyStat.Hp;
+        atk = currentEnemyStat.Atk;
+    }
 
     private void FixedUpdate()
     {
@@ -41,27 +88,93 @@ public class SlimeUnit : Unit
         MoveToPlayer();
     }
 
-    public override void Init(UnitData unitData)
+    private void ResetSlimeRuntime()
     {
-        if (unitData is not SlimeUnitData)
-            return;
-
-        base.Init(unitData);
-
         currentPetTarget = null;
         nextScanTime = 0f;
         waitingRespawn = false;
         respawnTimer = 0f;
+
+        DisableUnusedNavigation();
+        DisableRootMotion();
     }
 
-    public void Respawn(Vector3 position)
+    private void CacheUnusedComponents()
     {
+        navMeshAgents = GetComponentsInChildren<NavMeshAgent>(true);
+        navMeshObstacles = GetComponentsInChildren<NavMeshObstacle>(true);
+        animators = GetComponentsInChildren<Animator>(true);
+    }
+
+    private void DisableUnusedNavigation()
+    {
+        if (navMeshAgents != null)
+        {
+            foreach (NavMeshAgent agent in navMeshAgents)
+            {
+                if (agent != null)
+                    agent.enabled = false;
+            }
+        }
+
+        if (navMeshObstacles != null)
+        {
+            foreach (NavMeshObstacle obstacle in navMeshObstacles)
+            {
+                if (obstacle != null)
+                    obstacle.enabled = false;
+            }
+        }
+    }
+
+    private void DisableRootMotion()
+    {
+        if (animators == null)
+            return;
+
+        foreach (Animator animator in animators)
+        {
+            if (animator != null)
+                animator.applyRootMotion = false;
+        }
+    }
+
+    public void Spawn(SlimeUnitData slimeData, EnemyStatData enemyStats, Vector3 position)
+    {
+        if (slimeData == null)
+            return;
+
         waitingRespawn = false;
         respawnTimer = 0f;
 
-        transform.position = position;
-        visualRoot.localScale = Vector3.one;
+        Physics.SyncTransforms();
+
+        if (visualRoot != null)
+        {
+            visualRoot.localPosition = Vector3.zero;
+            visualRoot.localRotation = Quaternion.identity;
+            visualRoot.localScale = Vector3.one;
+        }
+
+        currentEnemyStat = enemyStats;
+
         gameObject.SetActive(true);
+
+        Init(slimeData);
+
+        currentHp = maxHp;
+
+        DisableUnusedNavigation();
+        DisableRootMotion();
+
+        transform.position = position;
+
+        if (rb != null)
+        {
+            rb.velocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+            rb.position = position;
+        }
 
         currentPetTarget = null;
         nextScanTime = 0f;
@@ -98,7 +211,7 @@ public class SlimeUnit : Unit
 
     private PetUnit FindFirstAlivePetInDetectRange()
     {
-        float range = Mathf.Max(detectRange, data.atkRange);
+        float range = Mathf.Max(detectRange, atkRange);
 
         Collider[] hits = Physics.OverlapSphere(
             transform.position,
@@ -166,21 +279,59 @@ public class SlimeUnit : Unit
         return base.Attack(target);
     }
 
-    public override void TakeDamage(int damage)
+    public override void TakeDamage(double damage)
     {
         base.TakeDamage(damage);
     }
 
     public override void Die()
     {
+        if (IsDead)
+            return;
+
         base.Die();
-        GameManager.Instance.AddGold(SlimeData.goldDrop);
+
+        if (GameManager.Instance != null)
+            GameManager.Instance.AddGold(currentEnemyStat.goldDrop);
+
+        DropPoon();
+    }
+
+    private void DropPoon()
+    {
+        if (UnlockFuncContext.Instance != null && UnlockFuncContext.Instance.IsUnlocked("POON_SYSTEM"))
+        {
+            if (Random.value <= currentEnemyStat.PoonChance)
+            {
+                double poonAmount = currentEnemyStat.PoonDrop;
+
+                if (PlayerStatContext.Instance != null)
+                {
+                    poonAmount = PlayerStatContext.Instance.GetFinalStat(UpgradeStatType.PoonGain, (float)poonAmount);
+                }
+
+                GameManager.Instance.AddPoon(poonAmount);
+            }
+        }
+    }
+
+    public override bool LevelUp()
+    {
+        bool success = base.LevelUp();
+
+        if (!success)
+            return false;
+
+        return true;
     }
 
     public void OnDeathAnimationFinished()
     {
         if (!IsDead)
             return;
+
+        if (ItemDropSystem.Instance != null)
+            ItemDropSystem.Instance.DropRandomItem(transform.position);
 
         gameObject.SetActive(false);
 
@@ -195,40 +346,28 @@ public class SlimeUnit : Unit
 
     public void StartRespawn(float delay)
     {
-        if (waitingRespawn)
-            return;
-
         waitingRespawn = true;
         respawnTimer = delay;
     }
 
-    public void TickRespawn(float deltaTime)
+    public bool TickRespawn(float deltaTime)
     {
         if (!waitingRespawn)
-            return;
+            return false;
 
         if (gameObject.activeSelf)
-            return;
+            return false;
 
         respawnTimer -= deltaTime;
 
-        if (respawnTimer > 0f)
-            return;
-
-        if (spawner == null)
-            return;
-
-        Respawn(spawner.GetRespawnPosition());
+        return respawnTimer <= 0f;
     }
 
 #if UNITY_EDITOR
     private void OnDrawGizmosSelected()
     {
-        if (data == null)
-            return;
-
         Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, data.atkRange);
+        Gizmos.DrawWireSphere(transform.position, atkRange);
 
         Gizmos.color = Color.cyan;
         Gizmos.DrawWireSphere(transform.position, detectRange);

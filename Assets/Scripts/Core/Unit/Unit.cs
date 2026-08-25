@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using UnityEngine;
 
 public enum UnitState
@@ -11,11 +12,27 @@ public enum UnitState
 
 public abstract class Unit : MonoBehaviour
 {
+    private const string LevelKeyPrefix = "UnitLevel_";
+
     [Header("Data")]
     [SerializeField] protected UnitData data;
 
-    public int MaxHp => data != null ? data.hp : 0;
-    public float HpPercent => MaxHp > 0 ? (float)currentHp / MaxHp : 0f;
+    [Header("Instance Save")]
+    [SerializeField] protected string unitInstanceId;
+
+    [Header("Level")]
+    [SerializeField] protected int currentLevel = 1;
+
+    [Header("Runtime Stats")]
+    [SerializeField] protected double maxHp;
+    [SerializeField] protected double atk;
+    [SerializeField] protected float atkRange;
+    [SerializeField] protected float atkSpeed;
+    [SerializeField] protected float speed;
+
+    [Header("Runtime")]
+    [SerializeField] protected double currentHp;
+    [SerializeField] protected UnitState state = UnitState.Idle;
 
     [Header("Visual")]
     [SerializeField] protected Transform visualRoot;
@@ -25,6 +42,12 @@ public abstract class Unit : MonoBehaviour
     [SerializeField] protected Animator animator;
     [SerializeField] protected float attackAnimationDuration = 0.5f;
 
+    [Header("Health Bar")]
+    [SerializeField] private UnitHealthBar healthBarPrefab;
+    [SerializeField] protected float reviveHealDuration = 3f;
+
+    private UnitHealthBar healthBarInstance;
+
     private static readonly int IdleStateHash = Animator.StringToHash("Idle");
     private static readonly int MoveStateHash = Animator.StringToHash("Move");
     private static readonly int AttackStateHash = Animator.StringToHash("Attack");
@@ -33,23 +56,23 @@ public abstract class Unit : MonoBehaviour
     private Coroutine attackRoutine;
     private Coroutine reviveRoutine;
 
-    [Header("Health Bar")]
-    [SerializeField] private UnitHealthBar healthBarPrefab;
-    [SerializeField] protected float reviveHealDuration = 3f;
-    private UnitHealthBar healthBarInstance;
-
-    [Header("Runtime")]
-    [SerializeField] protected int currentHp;
-    [SerializeField] protected UnitState state = UnitState.Idle;
-
+    protected Rigidbody rb;
     protected float nextAttackTime;
 
     public UnitData Data => data;
-    public int CurrentHp => currentHp;
-    public UnitState State => state;
+
+    public string UnitInstanceId => unitInstanceId;
+
+    public int CurrentLevel => currentLevel;
+
+    public double MaxHp => maxHp;
+    public double CurrentHp => currentHp;
+    public double Atk => atk;
+    public float AtkRange => atkRange;
+
     public bool IsDead => state == UnitState.Dead;
 
-    protected Rigidbody rb;
+    protected virtual string LevelSaveKey => $"{LevelKeyPrefix}{unitInstanceId}";
 
     protected virtual void Awake()
     {
@@ -69,11 +92,31 @@ public abstract class Unit : MonoBehaviour
 
     public virtual void Init(UnitData unitData)
     {
+        Init(unitData, null);
+    }
+
+    protected virtual bool UseSavedLevel => true;
+
+    public virtual void Init(UnitData unitData, string instanceId)
+    {
         if (unitData == null)
             return;
 
         data = unitData;
-        currentHp = data.hp;
+
+        if (!string.IsNullOrEmpty(instanceId))
+            unitInstanceId = instanceId;
+
+        EnsureInstanceId();
+
+        if (UseSavedLevel)
+            LoadLevel();
+        else
+            currentLevel = Mathf.Clamp(data.defaultLevel, 1, data.maxLevel);
+
+        RecalculateStats();
+
+        currentHp = maxHp;
         nextAttackTime = 0f;
 
         gameObject.name = data.unitName;
@@ -82,6 +125,98 @@ public abstract class Unit : MonoBehaviour
         CreateHealthBar();
 
         SetState(UnitState.Idle, true);
+    }
+
+    protected virtual void EnsureInstanceId()
+    {
+        if (!string.IsNullOrEmpty(unitInstanceId))
+            return;
+
+        unitInstanceId = Guid.NewGuid().ToString();
+    }
+
+    public virtual bool LevelUp()
+    {
+        if (data == null)
+            return false;
+
+        if (currentLevel >= data.maxLevel)
+            return false;
+
+        currentLevel++;
+
+        RecalculateStats();
+        currentHp = maxHp;
+
+        return true;
+    }
+
+    public virtual bool SetLevel(int level)
+    {
+        if (data == null)
+            return false;
+
+        int newLevel = Mathf.Clamp(level, 1, data.maxLevel);
+
+        if (currentLevel == newLevel)
+            return false;
+
+        currentLevel = newLevel;
+
+        RecalculateStats();
+        currentHp = maxHp;
+
+        return true;
+    }
+
+    protected virtual void LoadLevel()
+    {
+        if (data == null)
+            return;
+
+        EnsureInstanceId();
+
+        currentLevel = PlayerPrefs.GetInt(LevelSaveKey, data.defaultLevel);
+        currentLevel = Mathf.Clamp(currentLevel, 1, data.maxLevel);
+    }
+
+    protected virtual void SaveLevel()
+    {
+        if (data == null)
+            return;
+
+        EnsureInstanceId();
+
+        PlayerPrefs.SetInt(LevelSaveKey, currentLevel);
+        PlayerPrefs.Save();
+    }
+
+    public virtual void ClearSavedLevel()
+    {
+        EnsureInstanceId();
+
+        PlayerPrefs.DeleteKey(LevelSaveKey);
+        PlayerPrefs.Save();
+
+        if (data != null)
+        {
+            currentLevel = data.defaultLevel;
+            RecalculateStats();
+            currentHp = maxHp;
+        }
+    }
+
+    protected virtual void RecalculateStats()
+    {
+        if (data == null)
+            return;
+
+        maxHp = data.baseHp;
+        atk = data.baseAtk;
+
+        atkRange = data.baseAtkRange;
+        atkSpeed = data.baseAtkSpeed;
+        speed = data.baseSpeed;
     }
 
     protected virtual void CreateVisualModel()
@@ -101,6 +236,7 @@ public abstract class Unit : MonoBehaviour
         }
 
         visualInstance = Instantiate(data.model, visualRoot);
+
         visualInstance.transform.localPosition = Vector3.zero;
         visualInstance.transform.localRotation = Quaternion.identity;
     }
@@ -154,14 +290,12 @@ public abstract class Unit : MonoBehaviour
 
         if (rb != null)
         {
-            Vector3 nextPosition =
-                rb.position + direction * data.speed * Time.fixedDeltaTime;
-
+            Vector3 nextPosition = rb.position + direction * speed * Time.fixedDeltaTime;
             rb.MovePosition(nextPosition);
         }
         else
         {
-            transform.position += direction * data.speed * Time.deltaTime;
+            transform.position += direction * speed * Time.deltaTime;
         }
 
         RotateTo(direction);
@@ -184,12 +318,13 @@ public abstract class Unit : MonoBehaviour
         if (Time.time < nextAttackTime)
             return false;
 
-        nextAttackTime = Time.time + (1f / data.atkSpeed);
+        float safeAtkSpeed = Mathf.Max(0.01f, atkSpeed);
+        nextAttackTime = Time.time + 1f / safeAtkSpeed;
 
         RotateTo(target.transform.position - transform.position);
         SetState(UnitState.Attacking, true);
 
-        target.TakeDamage(data.atk);
+        target.TakeDamage(atk);
 
         if (attackRoutine != null)
             StopCoroutine(attackRoutine);
@@ -209,12 +344,12 @@ public abstract class Unit : MonoBehaviour
         attackRoutine = null;
     }
 
-    public virtual void TakeDamage(int damage)
+    public virtual void TakeDamage(double damage)
     {
         if (IsDead)
             return;
 
-        int finalDamage = Mathf.Max(1, damage);
+        double finalDamage = Math.Max(1, damage);
         currentHp -= finalDamage;
 
         if (currentHp <= 0)
@@ -235,6 +370,12 @@ public abstract class Unit : MonoBehaviour
             attackRoutine = null;
         }
 
+        if (reviveRoutine != null)
+        {
+            StopCoroutine(reviveRoutine);
+            reviveRoutine = null;
+        }
+
         SetState(UnitState.Dead, true);
     }
 
@@ -242,6 +383,8 @@ public abstract class Unit : MonoBehaviour
     {
         if (data == null)
             return;
+
+        RecalculateStats();
 
         if (reviveRoutine != null)
             StopCoroutine(reviveRoutine);
@@ -252,24 +395,21 @@ public abstract class Unit : MonoBehaviour
     private IEnumerator ReviveRoutine()
     {
         nextAttackTime = 0f;
-
         currentHp = 0;
 
-        float elapsed = 0f;
+        double elapsed = 0f;
 
         while (elapsed < reviveHealDuration)
         {
             elapsed += Time.deltaTime;
 
-            float percent = Mathf.Clamp01(elapsed / reviveHealDuration);
-
-            currentHp = Mathf.RoundToInt(data.hp * percent);
+            double percent = Mathf.Clamp01((float)(double)elapsed / reviveHealDuration);
+            currentHp = Math.Round(maxHp * percent);
 
             yield return null;
         }
 
-        currentHp = data.hp;
-
+        currentHp = maxHp;
         reviveRoutine = null;
 
         SetState(UnitState.Idle, true);
@@ -309,23 +449,23 @@ public abstract class Unit : MonoBehaviour
         }
     }
 
-    protected bool CanAct()
+    protected virtual bool CanAct()
     {
         return data != null && !IsDead;
     }
 
-    protected bool IsTargetInAttackRange(Unit target)
+    protected virtual bool IsTargetInAttackRange(Unit target)
     {
         Vector3 offset = target.transform.position - transform.position;
         offset.y = 0f;
 
         float sqrDistance = offset.sqrMagnitude;
-        float sqrRange = data.atkRange * data.atkRange;
+        float sqrRange = atkRange * atkRange;
 
         return sqrDistance <= sqrRange;
     }
 
-    protected void RotateTo(Vector3 direction)
+    protected virtual void RotateTo(Vector3 direction)
     {
         direction.y = 0f;
 

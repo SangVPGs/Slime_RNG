@@ -1,0 +1,57 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8e55ab5c08bae614dbffa0f8c0bee0e5, type: 3}
+  m_Name: Cost Data
+  m_EditorClassIdentifier: 
+  defaultCost: 100
+  overflowMultiplier: 2.5
+  costs:
+  - level: 1
+    cost: 0
+    goldDrop: 20
+    poonChance: 0.3
+    poonDrop: 1
+  - level: 2
+    cost: 400
+    goldDrop: 100
+    poonChance: 0.3
+    poonDrop: 1
+  - level: 3
+    cost: 5000
+    goldDrop: 1000
+    poonChance: 0.3
+    poonDrop: 1
+  - level: 4
+    cost: 50000
+    goldDrop: 4000
+    poonChance: 0.3
+    poonDrop: 2
+  - level: 5
+    cost: 400000
+    goldDrop: 20000
+    poonChance: 0.3
+    poonDrop: 3
+  - level: 6
+    cost: 2000000
+    goldDrop: 45000
+    poonChance: 0.3
+    poonDrop: 4
+  - level: 7
+    cost: 12000000
+    goldDrop: 108000
+    poonChance: 0.3
+    poonDrop: 7
+  - level: 8
+    cost: 54000000
+    goldDrop: 200000
+    poonChance: 0.3
+    poonDrop: 9

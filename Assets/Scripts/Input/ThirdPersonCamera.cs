@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -38,12 +39,20 @@ public class ThirdPersonCamera : MonoBehaviour
 
     [Header("Mobile")]
     [SerializeField] private bool enableTouchInput = true;
-    [SerializeField] private bool ignoreTouchOverUI = true;
     [SerializeField, Range(0f, 1f)] private float cameraTouchStartScreenRatio = 0.5f;
 
     [Header("Touch Rules")]
     [SerializeField] private Joystick moveJoystick;
+    [SerializeField] private RectTransform zoomArea;
     [SerializeField] private float simultaneousTouchWindow = 0.12f;
+
+    [Header("UI Layers")]
+    [SerializeField] private LayerMask blockingUILayers;
+    [SerializeField] private LayerMask joystickUILayers;
+
+    private readonly HashSet<int> blockingUITouchIds = new();
+    private readonly HashSet<int> knownTouchIds = new();
+    private readonly List<RaycastResult> uiRaycastResults = new();
 
     private Vector3 currentFocusPoint;
 
@@ -80,6 +89,7 @@ public class ThirdPersonCamera : MonoBehaviour
         zoomAction?.action.Disable();
 
         ResetTouchState();
+        ClearTrackedTouches();
     }
 
     private void LateUpdate()
@@ -90,7 +100,6 @@ public class ThirdPersonCamera : MonoBehaviour
         HandleRotationInput();
         HandleZoomInput();
         HandleTouchInput();
-
         UpdateCameraPosition();
     }
 
@@ -135,9 +144,12 @@ public class ThirdPersonCamera : MonoBehaviour
         if (!enableTouchInput || Touchscreen.current == null)
             return;
 
+        UpdateTrackedTouches();
+
         if (GetActiveTouchCount() == 0)
         {
             ResetTouchState();
+            ClearTrackedTouches();
             return;
         }
 
@@ -153,25 +165,59 @@ public class ThirdPersonCamera : MonoBehaviour
         HandleRotateTouch();
     }
 
+    private void UpdateTrackedTouches()
+    {
+        HashSet<int> aliveTouchIds = new();
+
+        foreach (TouchControl touch in Touchscreen.current.touches)
+        {
+            if (!touch.press.isPressed)
+                continue;
+
+            int touchId = touch.touchId.ReadValue();
+            aliveTouchIds.Add(touchId);
+
+            if (knownTouchIds.Contains(touchId))
+                continue;
+
+            knownTouchIds.Add(touchId);
+
+            Vector2 position = touch.position.ReadValue();
+
+            if (IsScreenPointOnBlockingUI(position))
+                blockingUITouchIds.Add(touchId);
+        }
+
+        blockingUITouchIds.RemoveWhere(id => !aliveTouchIds.Contains(id));
+        knownTouchIds.RemoveWhere(id => !aliveTouchIds.Contains(id));
+    }
+
+    private void ClearTrackedTouches()
+    {
+        blockingUITouchIds.Clear();
+        knownTouchIds.Clear();
+    }
+
     private bool TryStartPinchZoom()
     {
-        if (!TryGetTwoActiveTouches(out TouchControl touch0, out TouchControl touch1))
+        if (!TryGetTwoZoomCandidateTouches(out TouchControl touch0, out TouchControl touch1))
             return false;
 
-        double diff = System.Math.Abs(
+        double timeDifference = System.Math.Abs(
             touch0.startTime.ReadValue() - touch1.startTime.ReadValue()
         );
 
-        if (diff > simultaneousTouchWindow)
+        if (timeDifference > simultaneousTouchWindow)
             return false;
 
         isPinchZooming = true;
-        MobileTouchLock.IsZooming = true;
 
         zoomTouchId0 = touch0.touchId.ReadValue();
         zoomTouchId1 = touch1.touchId.ReadValue();
 
         cameraTouchId = -1;
+
+        MobileTouchLock.IsZooming = true;
         MobileTouchLock.CameraTouchId = -1;
 
         if (moveJoystick != null)
@@ -189,23 +235,28 @@ public class ThirdPersonCamera : MonoBehaviour
 
         if (touch0 == null || touch1 == null)
         {
-            isPinchZooming = false;
-            MobileTouchLock.IsZooming = false;
-
-            zoomTouchId0 = -1;
-            zoomTouchId1 = -1;
-
+            StopPinchZoom();
             return;
         }
 
-        // Đang zoom thì khóa joystick + rotate
         cameraTouchId = -1;
+
+        MobileTouchLock.IsZooming = true;
         MobileTouchLock.CameraTouchId = -1;
 
         if (moveJoystick != null && moveJoystick.IsDragging)
             moveJoystick.ForceReset();
 
         ApplyPinchZoom(touch0, touch1);
+    }
+
+    private void StopPinchZoom()
+    {
+        isPinchZooming = false;
+        zoomTouchId0 = -1;
+        zoomTouchId1 = -1;
+
+        MobileTouchLock.IsZooming = false;
     }
 
     private void HandleRotateTouch()
@@ -218,9 +269,10 @@ public class ThirdPersonCamera : MonoBehaviour
             return;
         }
 
-        if (IsJoystickTouch(cameraTouch))
+        if (!IsValidCameraTouch(cameraTouch))
         {
             cameraTouchId = -1;
+            MobileTouchLock.CameraTouchId = -1;
             return;
         }
 
@@ -239,19 +291,19 @@ public class ThirdPersonCamera : MonoBehaviour
             if (!touch.press.isPressed)
                 continue;
 
-            if (IsJoystickTouch(touch))
+            if (!IsValidCameraTouch(touch))
                 continue;
 
-            int touchId = touch.touchId.ReadValue();
             Vector2 position = touch.position.ReadValue();
 
             if (position.x < Screen.width * cameraTouchStartScreenRatio)
                 continue;
 
-            if (ignoreTouchOverUI && IsPointerOverUI(touchId))
-                continue;
+            int touchId = touch.touchId.ReadValue();
 
             cameraTouchId = touchId;
+            MobileTouchLock.CameraTouchId = touchId;
+
             return;
         }
     }
@@ -266,18 +318,35 @@ public class ThirdPersonCamera : MonoBehaviour
             if (!touch.press.isPressed)
                 continue;
 
-            if (IsJoystickTouch(touch))
+            if (touch.touchId.ReadValue() != cameraTouchId)
                 continue;
 
-            if (touch.touchId.ReadValue() == cameraTouchId)
-                return touch;
+            if (!IsValidCameraTouch(touch))
+                break;
+
+            return touch;
         }
 
         cameraTouchId = -1;
+        MobileTouchLock.CameraTouchId = -1;
+
         return null;
     }
 
-    private bool TryGetTwoActiveTouches(out TouchControl touch0, out TouchControl touch1)
+    private bool IsValidCameraTouch(TouchControl touch)
+    {
+        int touchId = touch.touchId.ReadValue();
+
+        if (IsJoystickTouch(touch))
+            return false;
+
+        if (blockingUITouchIds.Contains(touchId))
+            return false;
+
+        return true;
+    }
+
+    private bool TryGetTwoZoomCandidateTouches(out TouchControl touch0, out TouchControl touch1)
     {
         touch0 = null;
         touch1 = null;
@@ -285,6 +354,14 @@ public class ThirdPersonCamera : MonoBehaviour
         foreach (TouchControl touch in Touchscreen.current.touches)
         {
             if (!touch.press.isPressed)
+                continue;
+
+            int touchId = touch.touchId.ReadValue();
+
+            if (blockingUITouchIds.Contains(touchId))
+                continue;
+
+            if (!IsTouchInsideZoomArea(touch))
                 continue;
 
             if (touch0 == null)
@@ -300,9 +377,65 @@ public class ThirdPersonCamera : MonoBehaviour
         return false;
     }
 
+    private bool IsTouchInsideZoomArea(TouchControl touch)
+    {
+        if (zoomArea == null)
+            return true;
+
+        Vector2 position = touch.position.ReadValue();
+
+        return IsScreenPointInsideRect(zoomArea, position);
+    }
+
+    private bool IsScreenPointInsideRect(RectTransform rectTransform, Vector2 screenPosition)
+    {
+        if (rectTransform == null)
+            return true;
+
+        Canvas canvas = rectTransform.GetComponentInParent<Canvas>();
+        Camera eventCamera = null;
+
+        if (canvas != null && canvas.renderMode == RenderMode.ScreenSpaceCamera)
+            eventCamera = canvas.worldCamera;
+
+        return RectTransformUtility.RectangleContainsScreenPoint(
+            rectTransform,
+            screenPosition,
+            eventCamera
+        );
+    }
+
+    private bool IsScreenPointOnBlockingUI(Vector2 screenPosition)
+    {
+        if (EventSystem.current == null)
+            return false;
+
+        PointerEventData eventData = new PointerEventData(EventSystem.current)
+        {
+            position = screenPosition
+        };
+
+        uiRaycastResults.Clear();
+        EventSystem.current.RaycastAll(eventData, uiRaycastResults);
+
+        for (int i = 0; i < uiRaycastResults.Count; i++)
+        {
+            GameObject hitObject = uiRaycastResults[i].gameObject;
+            int layerMask = 1 << hitObject.layer;
+
+            if ((joystickUILayers.value & layerMask) != 0)
+                return false;
+
+            if ((blockingUILayers.value & layerMask) != 0)
+                return true;
+        }
+
+        return false;
+    }
+
     private TouchControl GetTouchById(int touchId)
     {
-        if (touchId < 0)
+        if (touchId < 0 || Touchscreen.current == null)
             return null;
 
         foreach (TouchControl touch in Touchscreen.current.touches)
@@ -330,6 +463,9 @@ public class ThirdPersonCamera : MonoBehaviour
 
     private int GetActiveTouchCount()
     {
+        if (Touchscreen.current == null)
+            return 0;
+
         int count = 0;
 
         foreach (TouchControl touch in Touchscreen.current.touches)
@@ -356,14 +492,6 @@ public class ThirdPersonCamera : MonoBehaviour
 
         targetDistance -= pinchDelta * touchZoomSpeed;
         targetDistance = Mathf.Clamp(targetDistance, minDistance, maxDistance);
-    }
-
-    private bool IsPointerOverUI(int pointerId)
-    {
-        if (EventSystem.current == null)
-            return false;
-
-        return EventSystem.current.IsPointerOverGameObject(pointerId);
     }
 
     private void ResetTouchState()
@@ -435,13 +563,5 @@ public class ThirdPersonCamera : MonoBehaviour
             minDistance,
             desiredDistance
         );
-    }
-
-    public void SetTarget(Transform newTarget)
-    {
-        target = newTarget;
-
-        if (target != null)
-            currentFocusPoint = target.position + focusOffset;
     }
 }

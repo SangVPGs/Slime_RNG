@@ -15,11 +15,14 @@ MonoBehaviour:
   id: P011
   unitName: Monkey
   model: {fileID: 919132149155446097, guid: b90ecf8ae4b4d0341b97727388da9ab6, type: 3}
-  hp: 100
-  atk: 10
-  atkRange: 1.5
-  atkSpeed: 1
-  speed: 8
-  heal: 3
-  rarity: 2
-  icon: {fileID: 21300000, guid: 81ba28ad7d8c54c43b604f9c52a762a7, type: 3}
+  baseHp: 2100
+  baseAtk: 210
+  baseAtkRange: 1.5
+  baseAtkSpeed: 1.2
+  baseSpeed: 6
+  baseHeal: 30
+  rarity: 1
+  icon: {fileID: 590128676, guid: c2ffa0261fbd28f4f8d2ac84f6b02279, type: 3}
+  hpGrowthMultiplier: 1.12
+  atkGrowthMultiplier: 1.08
+  healGrowthMultiplier: 1.05

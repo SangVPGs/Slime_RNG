@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: af1b6694dba748541a6bf2a1f31dd8ed, type: 3}
+  m_Name: Map 4
+  m_EditorClassIdentifier: 
+  level: 4
+  mapPrefab: {fileID: 646257893302084318, guid: 376e5eaf01150174f84690fbb5d66e8d,
+    type: 3}
+  enemies:
+  - {fileID: 11400000, guid: 81f3c58a91603284f80e4d3b0c661eb9, type: 2}
+  enemyStats:
+    hp: 4000
+    atk: 400
+    goldDrop: 40

@@ -4,17 +4,18 @@ using UnityEngine.UI;
 
 public class MapUnlockUI : MonoBehaviour
 {
+    [Header("UI")]
     [SerializeField] private Button unlockButton;
     [SerializeField] private TMP_Text costText;
 
     private MapChunk owner;
 
-    public void Initialize(MapChunk mapChunk, int unlockCost)
+    public void Initialize(MapChunk mapChunk, double unlockCost)
     {
         owner = mapChunk;
 
         if (costText != null)
-            costText.text = unlockCost.ToString();
+            costText.text = $"{NumberFormatter.Format(unlockCost)}";
 
         if (unlockButton != null)
         {

@@ -149,14 +149,21 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   data: {fileID: 0}
+  unitInstanceId: 
+  currentLevel: 1
+  maxHp: 0
+  atk: 0
+  atkRange: 0
+  atkSpeed: 0
+  speed: 0
+  currentHp: 0
+  state: 0
   visualRoot: {fileID: 5228534712215451617}
   animator: {fileID: 4063061559963968295}
   attackAnimationDuration: 0.5
   healthBarPrefab: {fileID: 4444393122452517489, guid: 355bc9d7596adb84382d3b06382a8b1a,
     type: 3}
   reviveHealDuration: 0
-  currentHp: 0
-  state: 0
   player: {fileID: 0}
   currentPetTarget: {fileID: 0}
   petLayer:
@@ -165,3 +172,5 @@ MonoBehaviour:
   scanInterval: 0.25
   detectRange: 3
   stopDistanceFromPlayer: 2
+  hpPerLevel: 500
+  atkPerLevel: 50

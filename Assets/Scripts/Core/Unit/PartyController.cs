@@ -1,11 +1,10 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 public class PartyController : MonoBehaviour
 {
-    [Header("Data")]
-    [SerializeField] private PartySystem partySystem;
+    private PartySystem partySystem => PartySystem.Instance;
+    private InventorySystem inventorySystem => InventorySystem.Instance;
 
     [Header("Pet Prefab")]
     [SerializeField] private PetUnit petPrefab;
@@ -23,7 +22,7 @@ public class PartyController : MonoBehaviour
     [SerializeField] private float scanInterval = 0.25f;
     [SerializeField] private float detectRange = 5f;
 
-    private readonly Dictionary<PetUnitData, PetUnit> partyMembers = new();
+    private readonly Dictionary<string, PetUnit> partyMembers = new();
 
     private SlimeUnit currentSlimeTarget;
     private float nextScanTime;
@@ -32,43 +31,47 @@ public class PartyController : MonoBehaviour
     {
         if (partySystem != null)
             partySystem.OnPartyChanged += SyncParty;
+
+        if (inventorySystem != null)
+            inventorySystem.OnInventoryChanged += RefreshExistingPetsFromInventory;
     }
 
     private void OnDisable()
     {
         if (partySystem != null)
             partySystem.OnPartyChanged -= SyncParty;
+
+        if (inventorySystem != null)
+            inventorySystem.OnInventoryChanged -= RefreshExistingPetsFromInventory;
     }
 
     private void Start()
     {
+        if (partySystem != null)
+            partySystem.RebuildPartyEntries();
+
         SyncParty();
     }
 
-    private void FixedUpdate()
-    {
-        if (IsPartyTooFarFromPlayer())
-        {
-            currentSlimeTarget = null;
-
-            FollowPlayer();
-
-            return;
-        }
-
-        if (HasValidTarget())
-        {
-            AttackTarget();
-
-            return;
-        }
-
+    private void FixedUpdate() 
+    { 
         ScanTargetByInterval();
-
+        
         if (HasValidTarget())
-            AttackTarget();
-        else
-            FollowPlayer();
+        {
+            if (HasAnyPetInAttackRange(currentSlimeTarget))
+            {
+                AttackTarget();
+                return;
+            }
+            
+            if (!IsPartyTooFarFromPlayer()) 
+            { 
+                AttackTarget();
+                return;
+            }
+        }
+        FollowPlayer();
     }
 
     public void SyncParty()
@@ -80,22 +83,33 @@ public class PartyController : MonoBehaviour
             return;
         }
 
-        IReadOnlyList<PetUnitData> partyPets = partySystem.Data.Pets;
+        IReadOnlyList<InventorySystem.PetInventoryEntry> partyPets = partySystem.Data.Pets;
 
         RemoveMissingPets(partyPets);
         SpawnNewPets(partyPets);
+        RefreshExistingPets(partyPets);
 
         currentSlimeTarget = null;
     }
 
-    private void RemoveMissingPets(
-        IReadOnlyList<PetUnitData> partyPets)
+    private void RemoveMissingPets(IReadOnlyList<InventorySystem.PetInventoryEntry> partyPets)
     {
-        List<PetUnitData> removeList = new();
+        List<string> removeList = new();
 
-        foreach (var pair in partyMembers)
+        foreach (KeyValuePair<string, PetUnit> pair in partyMembers)
         {
-            if (!partyPets.Contains(pair.Key))
+            bool stillInParty = false;
+
+            foreach (InventorySystem.PetInventoryEntry entry in partyPets)
+            {
+                if (entry != null && entry.petId == pair.Key)
+                {
+                    stillInParty = true;
+                    break;
+                }
+            }
+
+            if (!stillInParty)
             {
                 if (pair.Value != null)
                     Destroy(pair.Value.gameObject);
@@ -104,27 +118,28 @@ public class PartyController : MonoBehaviour
             }
         }
 
-        foreach (PetUnitData petData in removeList)
+        foreach (string petId in removeList)
         {
-            partyMembers.Remove(petData);
+            partyMembers.Remove(petId);
         }
     }
 
-    private void SpawnNewPets(
-        IReadOnlyList<PetUnitData> partyPets)
+    private void SpawnNewPets(IReadOnlyList<InventorySystem.PetInventoryEntry> partyPets)
     {
         for (int i = 0; i < partyPets.Count; i++)
         {
-            PetUnitData petData = partyPets[i];
+            InventorySystem.PetInventoryEntry entry = partyPets[i];
 
-            if (petData == null)
+            if (entry == null || entry.petData == null)
                 continue;
 
-            if (partyMembers.ContainsKey(petData))
+            if (string.IsNullOrEmpty(entry.petId))
                 continue;
 
-            Vector3 spawnPosition =
-                GetFollowPosition(i);
+            if (partyMembers.ContainsKey(entry.petId))
+                continue;
+
+            Vector3 spawnPosition = GetFollowPosition(i);
 
             PetUnit petUnit = Instantiate(
                 petPrefab,
@@ -132,9 +147,34 @@ public class PartyController : MonoBehaviour
                 Quaternion.identity
             );
 
-            petUnit.Init(petData);
+            petUnit.InitFromInventoryEntry(entry);
 
-            partyMembers.Add(petData, petUnit);
+            partyMembers.Add(entry.petId, petUnit);
+        }
+    }
+
+    private void RefreshExistingPetsFromInventory()
+    {
+        if (partySystem == null || partySystem.Data == null)
+            return;
+
+        RefreshExistingPets(partySystem.Data.Pets);
+    }
+
+    private void RefreshExistingPets(IReadOnlyList<InventorySystem.PetInventoryEntry> partyPets)
+    {
+        foreach (InventorySystem.PetInventoryEntry entry in partyPets)
+        {
+            if (entry == null || string.IsNullOrEmpty(entry.petId))
+                continue;
+
+            if (!partyMembers.TryGetValue(entry.petId, out PetUnit petUnit))
+                continue;
+
+            if (petUnit == null)
+                continue;
+
+            petUnit.ApplyInventoryProgress(entry);
         }
     }
 
@@ -145,14 +185,10 @@ public class PartyController : MonoBehaviour
 
         nextScanTime = Time.time + scanInterval;
 
-        if (currentSlimeTarget != null &&
-            !currentSlimeTarget.IsDead)
-        {
+        if (HasValidTarget())
             return;
-        }
 
-        currentSlimeTarget =
-            FindNearestAliveSlimeAroundPlayer();
+        currentSlimeTarget = FindNearestAliveSlimeAroundPlayer();
     }
 
     private SlimeUnit FindNearestAliveSlimeAroundPlayer()
@@ -164,25 +200,19 @@ public class PartyController : MonoBehaviour
         );
 
         SlimeUnit nearestSlime = null;
-
         float nearestSqrDistance = Mathf.Infinity;
 
         foreach (Collider hit in hits)
         {
-            SlimeUnit slime =
-                hit.GetComponentInParent<SlimeUnit>();
+            SlimeUnit slime = hit.GetComponentInParent<SlimeUnit>();
 
             if (slime == null || slime.IsDead)
                 continue;
 
-            Vector3 offset =
-                slime.transform.position -
-                transform.position;
-
+            Vector3 offset = slime.transform.position - transform.position;
             offset.y = 0f;
 
-            float sqrDistance =
-                offset.sqrMagnitude;
+            float sqrDistance = offset.sqrMagnitude;
 
             if (sqrDistance < nearestSqrDistance)
             {
@@ -197,7 +227,19 @@ public class PartyController : MonoBehaviour
     private bool HasValidTarget()
     {
         return currentSlimeTarget != null &&
-               !currentSlimeTarget.IsDead;
+               !currentSlimeTarget.IsDead &&
+               IsTargetInsideDetectRange(currentSlimeTarget);
+    }
+
+    private bool IsTargetInsideDetectRange(SlimeUnit slime)
+    {
+        if (slime == null)
+            return false;
+
+        Vector3 offset = slime.transform.position - transform.position;
+        offset.y = 0f;
+
+        return offset.sqrMagnitude <= detectRange * detectRange;
     }
 
     private void AttackTarget()
@@ -205,23 +247,20 @@ public class PartyController : MonoBehaviour
         if (currentSlimeTarget == null)
             return;
 
-        foreach (var pair in partyMembers)
+        foreach (KeyValuePair<string, PetUnit> pair in partyMembers)
         {
             PetUnit pet = pair.Value;
 
             if (pet == null || pet.IsDead)
                 continue;
 
-            if (IsSlimeInAttackRange(
-                    pet,
-                    currentSlimeTarget))
+            if (IsSlimeInAttackRange(pet, currentSlimeTarget))
             {
                 pet.Attack(currentSlimeTarget);
             }
             else
             {
-                float petStopDistance =
-                    pet.Data.atkRange * 0.9f;
+                float petStopDistance = pet.AtkRange * 0.9f;
 
                 pet.MoveTo(
                     currentSlimeTarget.transform.position,
@@ -231,46 +270,52 @@ public class PartyController : MonoBehaviour
         }
     }
 
-    private bool IsSlimeInAttackRange(
-        PetUnit pet,
-        SlimeUnit slime)
+    private bool IsSlimeInAttackRange(PetUnit pet, SlimeUnit slime)
     {
         if (pet == null || slime == null)
             return false;
 
-        Vector3 offset =
-            slime.transform.position -
-            pet.transform.position;
-
+        Vector3 offset = slime.transform.position - pet.transform.position;
         offset.y = 0f;
 
-        float range = pet.Data.atkRange;
+        float range = pet.AtkRange;
 
-        return offset.sqrMagnitude <=
-               range * range;
+        return offset.sqrMagnitude <= range * range;
     }
 
-    private bool IsPartyTooFarFromPlayer()
+    private bool HasAnyPetInAttackRange(SlimeUnit slime)
     {
-        foreach (var pair in partyMembers)
+        if (slime == null)
+            return false;
+
+        foreach (KeyValuePair<string, PetUnit> pair in partyMembers)
         {
             PetUnit pet = pair.Value;
 
             if (pet == null || pet.IsDead)
                 continue;
 
-            Vector3 offset =
-                pet.transform.position -
-                transform.position;
+            if (IsSlimeInAttackRange(pet, slime))
+                return true;
+        }
 
+        return false;
+    }
+
+    private bool IsPartyTooFarFromPlayer()
+    {
+        foreach (KeyValuePair<string, PetUnit> pair in partyMembers)
+        {
+            PetUnit pet = pair.Value;
+
+            if (pet == null || pet.IsDead)
+                continue;
+
+            Vector3 offset = pet.transform.position - transform.position;
             offset.y = 0f;
 
-            if (offset.sqrMagnitude >
-                maxDistanceFromPlayer *
-                maxDistanceFromPlayer)
-            {
+            if (offset.sqrMagnitude > maxDistanceFromPlayer * maxDistanceFromPlayer)
                 return true;
-            }
         }
 
         return false;
@@ -280,15 +325,14 @@ public class PartyController : MonoBehaviour
     {
         int index = 0;
 
-        foreach (var pair in partyMembers)
+        foreach (KeyValuePair<string, PetUnit> pair in partyMembers)
         {
             PetUnit pet = pair.Value;
 
             if (pet == null || pet.IsDead)
                 continue;
 
-            Vector3 followPosition =
-                GetFollowPosition(index);
+            Vector3 followPosition = GetFollowPosition(index);
 
             pet.MoveTo(
                 followPosition,
@@ -302,20 +346,18 @@ public class PartyController : MonoBehaviour
     private Vector3 GetFollowPosition(int index)
     {
         return transform.position -
-               transform.forward *
-               (followDistance + spacing * index);
+               transform.forward * (followDistance + spacing * index);
     }
 
     public void ClearParty()
     {
-        foreach (var pair in partyMembers)
+        foreach (KeyValuePair<string, PetUnit> pair in partyMembers)
         {
             if (pair.Value != null)
                 Destroy(pair.Value.gameObject);
         }
 
         partyMembers.Clear();
-
         currentSlimeTarget = null;
     }
 
@@ -323,18 +365,10 @@ public class PartyController : MonoBehaviour
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.blue;
-
-        Gizmos.DrawWireSphere(
-            transform.position,
-            detectRange
-        );
+        Gizmos.DrawWireSphere(transform.position, detectRange);
 
         Gizmos.color = Color.yellow;
-
-        Gizmos.DrawWireSphere(
-            transform.position,
-            maxDistanceFromPlayer
-        );
+        Gizmos.DrawWireSphere(transform.position, maxDistanceFromPlayer);
     }
 #endif
 }

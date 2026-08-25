@@ -19,5 +19,16 @@ public class MapAreaTrigger : MonoBehaviour
             return;
 
         MapProgressSave.SaveCurrentMapLevel(mapChunk.Level);
+
+        if (SlimeSpawner.Instance != null)
+        {
+            SlimeSpawner.Instance.SetContext(
+                new SlimeSpawnContext(
+                    mapChunk.Level,
+                    mapChunk.Enemies,
+                    mapChunk.EnemyStats
+                )
+            );
+        }
     }
 }

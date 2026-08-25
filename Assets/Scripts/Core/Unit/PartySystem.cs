@@ -1,48 +1,95 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class PartySystem : MonoBehaviour
 {
     private const string SaveKey = "Party_Data";
+    private const string AutoEquipKey = "Party_AutoEquip";
 
     public event Action OnPartyChanged;
 
-    [Header("Database")]
-    [SerializeField] private PetDatabase petDatabase;
+    private InventorySystem inventorySystem => InventorySystem.Instance;
 
     [Header("Data")]
     [SerializeField] private PartyData data = new();
 
+    private bool autoEquip = true;
+
     public PartyData Data => data;
+    public bool AutoEquip => autoEquip;
+
+    public static PartySystem Instance { get; private set; }
 
     private void Awake()
     {
-        data.SetDatabase(petDatabase);
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+
         Load();
+
+        autoEquip = PlayerPrefs.GetInt(AutoEquipKey, 1) == 1;
     }
 
-    public bool AddPet(PetUnitData petData)
+    private void Start()
     {
-        bool success = data.AddPet(petData);
+        RebuildPartyEntries();
+
+        if (autoEquip)
+            AutoEquipFromInventory();
+        else
+            OnPartyChanged?.Invoke();
+    }
+
+    public void RefreshAfterUpgradeChanged()
+    {
+        RebuildPartyEntries();
+
+        if (autoEquip)
+            AutoEquipFromInventory();
+        else
+            OnPartyChanged?.Invoke();
+    }
+
+    public bool AddPet(InventorySystem.PetInventoryEntry entry)
+    {
+        if (entry == null || entry.petData == null)
+            return false;
+
+        bool success = data.AddPet(entry);
 
         if (!success)
             return false;
 
+        inventorySystem?.SetPetInPartyWithoutNotify(entry, true);
+
         Save();
+        inventorySystem?.SaveAndNotify();
         OnPartyChanged?.Invoke();
 
         return true;
     }
 
-    public bool RemovePet(PetUnitData petData)
+    public bool RemovePet(InventorySystem.PetInventoryEntry entry)
     {
-        bool success = data.RemovePet(petData);
+        if (entry == null || entry.petData == null)
+            return false;
+
+        bool success = data.RemovePet(entry);
 
         if (!success)
             return false;
 
+        inventorySystem?.SetPetInPartyWithoutNotify(entry, false);
+
         Save();
+        inventorySystem?.SaveAndNotify();
         OnPartyChanged?.Invoke();
 
         return true;
@@ -50,10 +97,145 @@ public class PartySystem : MonoBehaviour
 
     public void ClearParty()
     {
+        foreach (InventorySystem.PetInventoryEntry entry in data.Pets)
+        {
+            if (entry != null)
+                inventorySystem?.SetPetInPartyWithoutNotify(entry, false);
+        }
+
         data.ClearParty();
 
         Save();
+        inventorySystem?.SaveAndNotify();
         OnPartyChanged?.Invoke();
+    }
+
+    public void ToggleAutoEquip()
+    {
+        autoEquip = !autoEquip;
+
+        PlayerPrefs.SetInt(AutoEquipKey, autoEquip ? 1 : 0);
+        PlayerPrefs.Save();
+
+        if (autoEquip)
+            AutoEquipFromInventory();
+        else
+            OnPartyChanged?.Invoke();
+    }
+
+    public void AutoEquipFromInventory()
+    {
+        if (inventorySystem == null || inventorySystem.Data == null)
+            return;
+
+        RebuildPartyEntries();
+
+        List<InventorySystem.PetInventoryEntry> availablePets =
+            inventorySystem.Data.Pets
+                .Where(entry =>
+                    entry != null &&
+                    entry.petData != null &&
+                    !entry.isInParty)
+                .OrderByDescending(entry =>
+                    PetUnit.CalculateCombatPower(entry.petData, entry.level))
+                .ToList();
+
+        foreach (InventorySystem.PetInventoryEntry entry in availablePets)
+        {
+            if (entry == null || entry.petData == null)
+                continue;
+
+            if (!data.IsFull)
+            {
+                if (!data.AddPet(entry))
+                    continue;
+
+                inventorySystem.SetPetInPartyWithoutNotify(entry, true);
+                continue;
+            }
+
+            InventorySystem.PetInventoryEntry weakestPet = GetWeakestPartyPet();
+
+            if (weakestPet == null)
+                continue;
+
+            long newPetPower =
+                PetUnit.CalculateCombatPower(entry.petData, entry.level);
+
+            long weakestPower =
+                PetUnit.CalculateCombatPower(weakestPet.petData, weakestPet.level);
+
+            if (newPetPower <= weakestPower)
+                continue;
+
+            if (!data.RemovePet(weakestPet))
+                continue;
+
+            inventorySystem.SetPetInPartyWithoutNotify(weakestPet, false);
+
+            if (data.AddPet(entry))
+                inventorySystem.SetPetInPartyWithoutNotify(entry, true);
+        }
+
+        Save();
+        inventorySystem.SaveAndNotify();
+        OnPartyChanged?.Invoke();
+    }
+
+    public void RebuildPartyEntries()
+    {
+        if (inventorySystem == null || inventorySystem.Data == null)
+            return;
+
+        data.ClearRuntimeOnly();
+
+        inventorySystem.Data.SetAllPetsOutParty();
+
+        List<string> missingPetIds = new();
+
+        foreach (string petId in data.PetIds)
+        {
+            InventorySystem.PetInventoryEntry entry =
+                inventorySystem.Data.GetEntryByPetId(petId);
+
+            if (entry == null || entry.petData == null)
+            {
+                Debug.LogWarning($"Party pet not found in inventory: {petId}");
+                missingPetIds.Add(petId);
+                continue;
+            }
+
+            data.AddRuntimeEntry(entry);
+            entry.isInParty = true;
+        }
+
+        foreach (string missingPetId in missingPetIds)
+            data.RemovePetId(missingPetId);
+
+        if (missingPetIds.Count > 0)
+            Save();
+
+        inventorySystem.SaveAndNotify();
+    }
+
+    private InventorySystem.PetInventoryEntry GetWeakestPartyPet()
+    {
+        InventorySystem.PetInventoryEntry weakestPet = null;
+
+        foreach (InventorySystem.PetInventoryEntry entry in data.Pets)
+        {
+            if (entry == null || entry.petData == null)
+                continue;
+
+            if (weakestPet == null ||
+                PetUnit.CalculateCombatPower(entry.petData, entry.level) <
+                PetUnit.CalculateCombatPower(weakestPet.petData, weakestPet.level))
+            {
+                weakestPet = entry;
+            }
+        }
+
+        return weakestPet;
     }
 
     private void Save()
@@ -67,85 +249,125 @@ public class PartySystem : MonoBehaviour
     private void Load()
     {
         if (!PlayerPrefs.HasKey(SaveKey))
+        {
+            data.ClearParty();
             return;
+        }
 
         string json = PlayerPrefs.GetString(SaveKey);
 
         if (string.IsNullOrEmpty(json))
+        {
+            data.ClearParty();
             return;
+        }
 
         JsonUtility.FromJsonOverwrite(json, data);
+    }
 
-        data.SetDatabase(petDatabase);
+    public void ClearData()
+    {
+        data.ClearParty();
+
+        PlayerPrefs.DeleteKey(SaveKey);
+        PlayerPrefs.DeleteKey(AutoEquipKey);
+        PlayerPrefs.Save();
+
+        OnPartyChanged?.Invoke();
     }
 
     [Serializable]
     public class PartyData
     {
-        [SerializeField] private int maxPartySize = 4;
+        [SerializeField] private int baseMaxPartySize = 4;
         [SerializeField] private List<string> petIds = new();
 
-        [NonSerialized] private PetDatabase petDatabase;
+        [NonSerialized] private List<InventorySystem.PetInventoryEntry> pets = new();
 
-        public int MaxPartySize => maxPartySize;
-        public IReadOnlyList<string> PetIds => petIds;
-        public bool IsFull => petIds.Count >= maxPartySize;
+        public int BaseMaxPartySize => baseMaxPartySize;
 
-        public IReadOnlyList<PetUnitData> Pets
+        public int MaxPartySize
         {
             get
             {
-                List<PetUnitData> result = new();
+                int finalSize = baseMaxPartySize;
 
-                if (petDatabase == null)
-                    return result;
-
-                foreach (string petId in petIds)
+                if (PlayerStatContext.Instance != null)
                 {
-                    PetUnitData pet = petDatabase.GetPetById(petId);
-
-                    if (pet != null)
-                        result.Add(pet);
+                    finalSize = Mathf.RoundToInt(
+                        PlayerStatContext.Instance.GetFinalStat(
+                            UpgradeStatType.MaxPartySize,
+                            baseMaxPartySize
+                        )
+                    );
                 }
 
-                return result;
+                return Mathf.Max(1, finalSize);
             }
         }
 
-        public void SetDatabase(PetDatabase database)
-        {
-            petDatabase = database;
-        }
+        public IReadOnlyList<string> PetIds => petIds;
+        public IReadOnlyList<InventorySystem.PetInventoryEntry> Pets => pets;
 
-        public bool AddPet(PetUnitData petData)
+        public bool IsFull => petIds.Count >= MaxPartySize;
+
+        public bool AddPet(InventorySystem.PetInventoryEntry entry)
         {
-            if (petData == null)
+            if (entry == null || entry.petData == null)
                 return false;
 
-            if (string.IsNullOrEmpty(petData.Id))
+            string petId = entry.petId;
+
+            if (string.IsNullOrEmpty(petId))
                 return false;
 
             if (IsFull)
                 return false;
 
-            if (petIds.Contains(petData.Id))
+            if (petIds.Contains(petId))
                 return false;
 
-            petIds.Add(petData.Id);
+            petIds.Add(petId);
+            AddRuntimeEntry(entry);
+
             return true;
         }
 
-        public bool RemovePet(PetUnitData petData)
+        public bool RemovePet(InventorySystem.PetInventoryEntry entry)
         {
-            if (petData == null || string.IsNullOrEmpty(petData.Id))
+            if (entry == null || string.IsNullOrEmpty(entry.petId))
                 return false;
 
-            return petIds.Remove(petData.Id);
+            pets.Remove(entry);
+            return petIds.Remove(entry.petId);
+        }
+
+        public bool RemovePetId(string petId)
+        {
+            if (string.IsNullOrEmpty(petId))
+                return false;
+
+            return petIds.Remove(petId);
+        }
+
+        public void AddRuntimeEntry(InventorySystem.PetInventoryEntry entry)
+        {
+            if (entry == null || entry.petData == null)
+                return;
+
+            if (!pets.Contains(entry))
+                pets.Add(entry);
+        }
+
+        public void ClearRuntimeOnly()
+        {
+            pets.Clear();
         }
 
         public void ClearParty()
         {
             petIds.Clear();
+            pets.Clear();
         }
     }
 }

@@ -4,95 +4,56 @@ using UnityEngine.UI;
 
 public class GachaUI : MonoBehaviour
 {
-    [Header("Text")]
-    [SerializeField] private TMP_Text resultText;
+    [Header("Rate")]
+    [SerializeField] private TMP_Text rateText;
 
-    [Header("Roll Button")]
-    [SerializeField] private Button rollButton;
-    [SerializeField] private Image rollButtonImage;
-    [SerializeField] private TMP_Text rollButtonText;
+    [Header("Buttons")]
+    [SerializeField] private GameObject hideButton;
+    [SerializeField] private GameObject autoRollButton;
 
-    [Header("Auto Roll Button")]
+    [Header("Auto Roll Visual")]
     [SerializeField] private Image autoRollButtonImage;
     [SerializeField] private TMP_Text autoRollButtonText;
 
     [Header("Colors")]
     [SerializeField] private Color normalColor = Color.white;
     [SerializeField] private Color rollingColor = Color.green;
-    [SerializeField] private Color disabledColor = Color.gray;
     [SerializeField] private Color normalTextColor = Color.black;
     [SerializeField] private Color activeTextColor = Color.white;
 
-    public void ShowRollingPet(PetUnitData pet)
+    private void OnEnable()
     {
-        if (resultText == null || pet == null)
-            return;
-
-        ChangeTextColor(pet.rarity);
-        resultText.text = $"{pet.unitName} ({pet.rarity})";
+        RefreshRate();
     }
 
-    public void ShowFinalPet(PetUnitData pet)
+    public void RefreshRate()
     {
-        if (resultText == null || pet == null)
+        if (rateText == null)
             return;
 
-        ChangeTextColor(pet.rarity);
-        resultText.text = $"Got: {pet.unitName} ({pet.rarity})";
+        rateText.text = GachaSystem.Instance != null
+            ? GachaSystem.Instance.GetCurrentRateText()
+            : "Rate: N/A";
     }
 
-    public void SetAutoRollVisual(bool isRolling)
+    public void ShowFullControls(bool showHideButton)
+    {
+        RefreshRate();
+        SetHideButtonVisible(showHideButton);
+    }
+
+    public void SetAutoRollVisual(bool isAutoRolling)
     {
         if (autoRollButtonImage != null)
-            autoRollButtonImage.color = isRolling ? rollingColor : normalColor;
+            autoRollButtonImage.color = isAutoRolling ? rollingColor : normalColor;
 
         if (autoRollButtonText != null)
-            autoRollButtonText.color = isRolling ? activeTextColor : normalTextColor;
-
-        if (rollButton != null)
-            rollButton.interactable = !isRolling;
-
-        if (rollButtonImage != null)
-            rollButtonImage.color = isRolling ? disabledColor : normalColor;
-
-        if (rollButtonText != null)
-            rollButtonText.color = isRolling ? activeTextColor : normalTextColor;
+            autoRollButtonText.color = isAutoRolling ? activeTextColor : normalTextColor;
     }
 
-    public void SetRollVisual(bool isRolling)
+    public void SetHideButtonVisible(bool visible)
     {
-        if (rollButton != null)
-            rollButton.interactable = !isRolling;
-
-        if (rollButtonImage != null)
-            rollButtonImage.color = isRolling ? disabledColor : normalColor;
-
-        if (rollButtonText != null)
-            rollButtonText.color = isRolling ? activeTextColor : normalTextColor;
-    }
-
-    private void ChangeTextColor(PetRarity rarity)
-    {
-        switch (rarity)
-        {
-            case PetRarity.Common:
-                resultText.color = Color.white;
-                break;
-            case PetRarity.Uncommon:
-                resultText.color = Color.green;
-                break;
-            case PetRarity.Rare:
-                resultText.color = Color.blue;
-                break;
-            case PetRarity.Epic:
-                resultText.color = Color.magenta;
-                break;
-            case PetRarity.Legendary:
-                resultText.color = Color.yellow;
-                break;
-            default:
-                resultText.color = Color.white;
-                break;
-        }
+        if (hideButton != null)
+            hideButton.SetActive(visible);
     }
 }

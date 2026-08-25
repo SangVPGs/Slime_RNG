@@ -1,6 +1,7 @@
+using System;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
 
 public class UnitHealthBar : MonoBehaviour
 {
@@ -49,15 +50,14 @@ public class UnitHealthBar : MonoBehaviour
 
     private void UpdateHealthUI()
     {
-        int currentHp = unit.CurrentHp;
-        int maxHp = unit.MaxHp;
+        double currentHp = unit.CurrentHp;
+        double maxHp = unit.MaxHp;
 
-        float percent = maxHp > 0 ? (float)currentHp / maxHp : 0f;
+        double percent = maxHp <= 0 ? 0d : Math.Clamp((double)currentHp / maxHp, 0d, 1d);
 
-        if (fillImage != null)
-            fillImage.fillAmount = percent;
+        fillImage.fillAmount = (float)percent;
 
         if (hpText != null)
-            hpText.text = $"{currentHp}/{maxHp}";
+            hpText.text = $"{NumberFormatter.Format(currentHp)}/{NumberFormatter.Format(maxHp)}";
     }
 }
